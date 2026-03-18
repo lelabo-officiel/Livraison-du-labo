@@ -6,16 +6,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>Livraison</title>
 
-<!-- ══ FIREBASE ══════════════════════════════════════════ -->
-
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getDatabase, ref, set, push, onValue, update, remove }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-  // ┌─────────────────────────────────────────────────────┐
-  // │  COLLE TA CONFIG FIREBASE ICI (étape 2 du guide)    │
-  // └─────────────────────────────────────────────────────┘
   const firebaseConfig = {
     apiKey:            "AIzaSyBxVLrwAU42buR1iFZ7a_v9ERKfEfaVLsI",
     authDomain:        "livraison-labo.firebaseapp.com",
@@ -25,21 +19,13 @@
     messagingSenderId: "531263927057",
     appId:             "1:531263927057:web:e5530cf0f34f642318d2b0"
   };
-
   const app = initializeApp(firebaseConfig);
   const db  = getDatabase(app);
-  window._db      = db;
-  window._dbRef   = ref;
-  window._dbSet   = set;
-  window._dbPush  = push;
-  window._dbOn    = onValue;
-  window._dbUpd   = update;
-  window._dbRem   = remove;
-  window._firebaseReady = true;
+  window._db=db; window._dbRef=ref; window._dbSet=set; window._dbPush=push;
+  window._dbOn=onValue; window._dbUpd=update; window._dbRem=remove;
+  window._firebaseReady=true;
   window.dispatchEvent(new Event('firebaseReady'));
 </script>
-
-<!-- ══ REACT + BABEL ═════════════════════════════════════ -->
 
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 
@@ -94,12 +80,13 @@ select.inp option{background:#1a1a1a}
 .route-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s2);border-bottom:1px solid var(--border)}
 .route-hdr-name{flex:1;font-weight:700;font-size:14px}
 .route-hdr-n{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)}
+.route-total{font-family:'Space Mono',monospace;font-size:11px;color:var(--ok);font-weight:700;padding:5px 14px;background:#0a1a0e;border-bottom:1px solid var(--border)}
 .order-row{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}
 .order-row:last-child{border-bottom:none}
 .o-num{font-family:'Space Mono',monospace;font-size:16px;font-weight:700;color:var(--accent);min-width:20px;padding-top:2px}
 .o-body{flex:1;min-width:0}
 .o-client{font-weight:700;font-size:14px;margin-bottom:1px}
-.o-addr{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}
+.o-addr{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
 .o-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .o-time{font-size:10px;color:var(--muted)}
 .badge{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px}
@@ -107,6 +94,7 @@ select.inp option{background:#1a1a1a}
 .b-warn{background:#2a240b;color:var(--warn)}
 .b-critical{background:#2a0b12;color:var(--crit)}
 .b-late{background:var(--crit);color:#fff;animation:blink 1s ease-in-out infinite}
+.b-eta{background:#001830;color:#4FC3F7}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
 .o-actions{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
 .unassigned-row{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border)}
@@ -126,12 +114,18 @@ select.inp option{background:#1a1a1a}
 .dv-n{font-family:'Space Mono',monospace;font-size:24px;font-weight:700;color:var(--accent);min-width:30px}
 .dv-body{flex:1}
 .dv-client{font-size:17px;font-weight:700;margin-bottom:3px}
-.dv-addr{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:10px}
+.dv-addr{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:8px}
 .dv-btns{display:flex;gap:8px}
 .dv-maps{display:inline-flex;align-items:center;gap:6px;background:#001e30;color:#4FC3F7;border:1px solid #003a5a;border-radius:8px;padding:9px 14px;font-weight:800;font-size:13px;text-decoration:none;flex:1;justify-content:center}
 .dv-done{background:#0a2a1a;color:var(--ok);border:1px solid #0f3d25;border-radius:8px;padding:9px 14px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;flex:1}
-.dv-order-footer{background:var(--s2);border-top:1px solid var(--border);padding:8px 13px;display:flex;align-items:center;justify-content:space-between}
+.dv-order-footer{background:var(--s2);border-top:1px solid var(--border);padding:8px 13px;display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
 .dv-added{font-size:10px;color:var(--muted)}
+.amount-box{background:#0a1a0e;border:1.5px solid var(--ok);border-radius:10px;padding:12px;margin-top:8px}
+.amount-box-lbl{font-size:12px;color:var(--ok);font-weight:700;margin-bottom:8px}
+.amount-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.amount-inp{background:var(--s2);border:1.5px solid var(--ok);color:var(--text);border-radius:8px;padding:8px 12px;font-size:18px;font-family:'Space Mono',monospace;font-weight:700;outline:none;width:110px}
+.amount-confirm{background:var(--ok);color:#000;border:none;border-radius:8px;padding:9px 14px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
+.amount-skip{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:9px 10px;font-size:12px;cursor:pointer;font-family:inherit}
 .sel-wrap{padding:20px 14px;min-height:60vh;display:flex;flex-direction:column;justify-content:center}
 .sel-title{font-size:22px;font-weight:800;margin-bottom:4px}
 .sel-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
@@ -142,9 +136,6 @@ select.inp option{background:#1a1a1a}
 .empty-txt{padding:20px 14px;text-align:center;color:var(--muted);font-size:13px}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid var(--ok);color:var(--ok);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:999;animation:fadeup .3s ease}
 @keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-.config-box{background:#1a0800;border:2px solid var(--accent);border-radius:14px;padding:16px;margin:14px}
-.config-box h2{font-size:16px;font-weight:800;margin-bottom:8px}
-.config-box p{font-size:12px;color:var(--muted);line-height:1.6}
 </style>
 
 </head>
@@ -152,168 +143,247 @@ select.inp option{background:#1a1a1a}
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useEffect, useRef } = React;
+const { useState, useEffect } = React;
 
-// ═══ PALETTE & CONSTANTES ═══════════════════════════════════
-const PALETTE = ['#FF6B00','#00C4FF','#06D6A0','#FFD60A','#C77DFF','#FF4D6D'];
+const PALETTE    = ['#FF6B00','#00C4FF','#06D6A0','#FFD60A','#C77DFF','#FF4D6D'];
 const DEADLINE_MS = 3 * 60 * 60 * 1000;
+const STOP_MS     = 5 * 60 * 1000; // 5 min chez le client
 
-// ═══ UTILS ══════════════════════════════════════════════════
+// ── Algorithme ──────────────────────────────────────────────
 function haversine(a, b) {
   if (!a?.lat || !b?.lat) return Infinity;
-  const R = 6371, toR = x => x * Math.PI / 180;
-  const dLat = toR(b.lat - a.lat), dLng = toR(b.lng - a.lng);
-  const aa = Math.sin(dLat/2)**2 + Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLng/2)**2;
+  const R = 6371, r = x => x * Math.PI / 180;
+  const dLat = r(b.lat-a.lat), dLng = r(b.lng-a.lng);
+  const aa = Math.sin(dLat/2)**2 + Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLng/2)**2;
   return R * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1-aa));
 }
 
-function optimizeRoute(orders, startPos = null) {
+function optimizeRoute(orders, startPos) {
   const ready = orders.filter(o => o.status !== 'done');
   if (ready.length <= 1) return ready;
   const now = Date.now();
-  let rem = [...ready], route = [], pos = startPos;
+  let rem = [...ready], route = [], pos = startPos || null;
+
   while (rem.length) {
-    const urgent = rem.filter(o => o.deadline - now < 80*60000).sort((a,b) => a.deadline - b.deadline);
-    const pool = urgent.length ? urgent : rem.slice().sort((a,b) => a.deadline - b.deadline);
+    // Commandes "super urgentes" : attendent depuis plus de 3h ou deadline dans moins de 30min
+    const superUrgent = rem.filter(o => now - o.addedAt > 3*60*60*1000 || o.deadline - now < 30*60*1000);
+    // Commandes "normalement urgentes" : deadline dans moins de 80min
+    const urgent = rem.filter(o => o.deadline - now < 80*60*1000);
+
+    let pool;
+    if (superUrgent.length > 0) {
+      // Mode priorité : on exclut les nouvelles commandes (< 45min) sauf si pas le choix
+      const veterans = rem.filter(o => now - o.addedAt > 45*60*1000);
+      const candidates = veterans.length > 0 ? veterans : rem;
+      pool = candidates.slice().sort((a,b) => a.deadline - b.deadline);
+    } else if (urgent.length > 0) {
+      pool = urgent.slice().sort((a,b) => a.deadline - b.deadline);
+    } else {
+      pool = rem.slice().sort((a,b) => a.deadline - b.deadline);
+    }
+
     let pick;
     if (pos && pool.length > 1) {
-      const win = pool.filter(o => o.deadline - pool[0].deadline < 25*60000);
-      pick = win.reduce((best, o) => haversine(pos, o) < haversine(pos, best) ? o : best);
+      // Parmi les candidats dans une fenêtre de 25min, prendre le plus proche géo
+      const win = pool.filter(o => o.deadline - pool[0].deadline < 25*60*1000);
+      pick = win.reduce((best, o) => haversine(pos,o) < haversine(pos,best) ? o : best);
     } else pick = pool[0];
+
     route.push(pick); pos = pick; rem = rem.filter(o => o.id !== pick.id);
   }
   return route;
 }
 
+// ── Géocodage ───────────────────────────────────────────────
 async function geocodeAddress(address) {
-  const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
-    { headers: {'Accept-Language':'fr-FR','User-Agent':'LivraisonApp/1.0'} });
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
+    { headers: {'Accept-Language':'fr-FR','User-Agent':'LivraisonApp/1.0'} }
+  );
   const data = await res.json();
-  if (!data.length) throw new Error('Adresse non trouvée');
+  if (!data.length) throw new Error('non trouvée');
   return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), displayName: data[0].display_name };
 }
 
+// ── ETAs via OSRM ───────────────────────────────────────────
+async function calcETAs(route, startPos) {
+  const result = new Array(route.length).fill(null);
+  const stops = route.map((o,i) => ({i,o})).filter(({o}) => o.lat && o.lng);
+  if (!stops.length) return result;
+  try {
+    const pts = startPos?.lat
+      ? [[startPos.lng, startPos.lat], ...stops.map(({o}) => [o.lng, o.lat])]
+      : stops.map(({o}) => [o.lng, o.lat]);
+    let legs = [];
+    if (pts.length >= 2) {
+      const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${pts.map(p=>p.join(',')).join(';')}?overview=false`);
+      const data = await res.json();
+      if (data.code === 'Ok') legs = data.routes[0].legs;
+    }
+    let t = Date.now();
+    stops.forEach(({i}, idx) => {
+      if (startPos?.lat) {
+        t += (legs[idx]?.duration ?? 0) * 1000 + STOP_MS;
+      } else {
+        t += idx === 0 ? 10*60*1000 : (legs[idx-1]?.duration ?? 0)*1000 + STOP_MS;
+      }
+      result[i] = t;
+    });
+  } catch(e) {}
+  return result;
+}
+
+function useETAs(route, startPos) {
+  const [etas, setEtas] = useState([]);
+  const key = route.map(o => `${o.id}:${o.lat??''}:${o.lng??''}`).join('|') + (startPos?`|${startPos.lat}`:'');
+  useEffect(() => {
+    setEtas(new Array(route.length).fill(null));
+    if (!route.length) return;
+    let dead = false;
+    calcETAs(route, startPos).then(r => { if (!dead) setEtas(r); });
+    return () => { dead = true; };
+  }, [key]);
+  return etas;
+}
+
+// ── Formatters ──────────────────────────────────────────────
 const fmtTime = ts => new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-const fmtCountdown = deadline => {
-  const d = deadline - Date.now();
-  if (d <= 0) return 'EN RETARD';
-  const h = Math.floor(d/3600000), m = Math.floor((d%3600000)/60000);
+const fmtCountdown = d => {
+  const ms = d - Date.now();
+  if (ms <= 0) return 'EN RETARD';
+  const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
   return h > 0 ? `${h}h${String(m).padStart(2,'0')}` : `${m}min`;
 };
-const urgencyLevel = deadline => {
-  const d = deadline - Date.now();
-  if (d <= 0) return 'late'; if (d < 45*60000) return 'critical';
-  if (d < 90*60000) return 'warn'; return 'ok';
+const urgency = d => {
+  const ms = d - Date.now();
+  if (ms <= 0) return 'late'; if (ms < 45*60000) return 'critical';
+  if (ms < 90*60000) return 'warn'; return 'ok';
 };
 const wazeUrl = o => o.lat && o.lng
   ? `https://waze.com/ul?ll=${o.lat},${o.lng}&navigate=yes`
   : `https://waze.com/ul?q=${encodeURIComponent(o.address)}&navigate=yes`;
+const fmtEuro = v => v != null && v !== '' ? `${parseFloat(v).toFixed(2).replace('.',',')} €` : null;
 
-// ═══ FIREBASE HELPERS ═══════════════════════════════════════
-function dbRef(path) { return window._dbRef(window._db, path); }
-function dbSet(path, val) { return window._dbSet(dbRef(path), val); }
-function dbUpd(path, val) { return window._dbUpd(dbRef(path), val); }
-function dbPush(path, val) { return window._dbPush(dbRef(path), val); }
-function dbRem(path) { return window._dbRem(dbRef(path)); }
-function dbOn(path, cb) { return window._dbOn(dbRef(path), snap => cb(snap.val())); }
+// Convertit "HH:MM" en timestamp (aujourd'hui à cette heure)
+function parseTimeToTs(str) {
+  const parts = str.trim().replace('h',':').split(':');
+  if (parts.length < 2) return null;
+  const h = parseInt(parts[0]), m = parseInt(parts[1]);
+  if (isNaN(h) || isNaN(m) || h > 23 || m > 59) return null;
+  const d = new Date(); d.setHours(h, m, 0, 0);
+  return d.getTime();
+}
 
-// ═══ TOAST ══════════════════════════════════════════════════
+// ── Firebase ────────────────────────────────────────────────
+const dbRef  = p => window._dbRef(window._db, p);
+const dbUpd  = (p, v) => window._dbUpd(dbRef(p), v);
+const dbPush = (p, v) => window._dbPush(dbRef(p), v);
+const dbRem  = p => window._dbRem(dbRef(p));
+const dbOn   = (p, cb) => window._dbOn(dbRef(p), s => cb(s.val()));
+
 function Toast({ msg, onDone }) {
-  useEffect(() => { const t = setTimeout(onDone, 2000); return () => clearTimeout(t); }, []);
+  useEffect(() => { const t = setTimeout(onDone, 2200); return () => clearTimeout(t); }, []);
   return <div className="toast">{msg}</div>;
 }
 
-// ═══ APP ════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// APP
+// ══════════════════════════════════════════════════════════
 function App() {
-  const [fbReady, setFbReady] = useState(!!window._firebaseReady);
-  const [fbConfigured, setFbConfigured] = useState(true);
-  const [drivers, setDrivers] = useState({});
-  const [orders, setOrders]   = useState({});
-  const [screen, setScreen]   = useState(() => {
+  const [fbReady,  setFbReady]  = useState(!!window._firebaseReady);
+  const [drivers,  setDrivers]  = useState({});
+  const [orders,   setOrders]   = useState({});
+  const [screen,   setScreen]   = useState(() => {
     const h = window.location.hash;
-    return h.startsWith('#driver-') ? h.slice(1) : 'admin';
+    if (h.startsWith('#driver-')) return h.slice(1);
+    if (h.startsWith('#track-'))  return h.slice(1);
+    return 'admin';
   });
   const [toast, setToast] = useState('');
-  const [, setTick] = useState(0);
+  const [, tick] = useState(0);
 
   useEffect(() => {
-    if (!fbReady) { window.addEventListener('firebaseReady', () => setFbReady(true)); }
+    if (!fbReady) window.addEventListener('firebaseReady', () => setFbReady(true));
   }, []);
-
-  useEffect(() => { const t = setInterval(() => setTick(n=>n+1), 30000); return () => clearInterval(t); }, []);
-
+  useEffect(() => { const t = setInterval(() => tick(n=>n+1), 30000); return ()=>clearInterval(t); }, []);
   useEffect(() => {
     if (!fbReady) return;
-    // Test if config is placeholder
-    try {
-      const unsub1 = dbOn('drivers', v => setDrivers(v || {}));
-      const unsub2 = dbOn('orders',  v => setOrders(v  || {}));
-      setFbConfigured(true);
-    } catch(e) { setFbConfigured(false); }
+    dbOn('drivers', v => setDrivers(v || {}));
+    dbOn('orders',  v => setOrders(v  || {}));
   }, [fbReady]);
-
   useEffect(() => {
-    if (screen.startsWith('driver-')) window.location.hash = screen;
+    if (screen.startsWith('driver-') || screen.startsWith('track-')) window.location.hash = screen;
     else history.replaceState(null,'',window.location.pathname);
   }, [screen]);
 
-  const showToast = msg => { setToast(msg); };
-
-  // ── Drivers ──────────────────────────────────────────────
   async function addDriver(name) {
     if (!name.trim()) return;
-    const color = PALETTE[Object.keys(drivers).length % PALETTE.length];
-    await dbPush('drivers', { name: name.trim(), color });
+    await dbPush('drivers', { name: name.trim(), color: PALETTE[Object.keys(drivers).length % PALETTE.length] });
   }
   async function removeDriver(id) {
     await dbRem(`drivers/${id}`);
-    Object.entries(orders).forEach(([oid, o]) => {
-      if (o.driverId === id) dbUpd(`orders/${oid}`, { driverId: null });
-    });
+    Object.entries(orders).forEach(([oid,o]) => { if (o.driverId===id) dbUpd(`orders/${oid}`,{driverId:null}); });
   }
-  async function updateDriver(id, patch) { await dbUpd(`drivers/${id}`, patch); }
-
-  // ── Orders ───────────────────────────────────────────────
-  async function addOrder(order) { await dbPush('orders', order); }
-  async function updateOrder(id, patch) { await dbUpd(`orders/${id}`, patch); }
+  async function updateDriver(id, p) { await dbUpd(`drivers/${id}`, p); }
+  async function updateOrder(id, p) { await dbUpd(`orders/${id}`, p); }
   async function deleteOrder(id) { await dbRem(`orders/${id}`); }
 
-  // ── Route ────────────────────────────────────────────────
-  function getRoute(driverId) {
-    const driver = drivers[driverId];
-    const startPos = driver?.baseLat ? { lat: driver.baseLat, lng: driver.baseLng } : null;
-    const dOrders = Object.entries(orders)
-      .filter(([,o]) => o.driverId === driverId && o.status !== 'done')
-      .map(([id,o]) => ({...o, id}));
-    return optimizeRoute(dOrders, startPos);
+  function startPos(did) {
+    const d = drivers[did];
+    return d?.baseLat ? {lat:d.baseLat, lng:d.baseLng} : null;
   }
-
-  function getDoneOrders(driverId) {
-    return Object.entries(orders)
-      .filter(([,o]) => o.driverId === driverId && o.status === 'done')
-      .map(([id,o]) => ({...o, id}))
-      .sort((a,b) => b.addedAt - a.addedAt); // plus récent en premier
+  function getRoute(did) {
+    return optimizeRoute(
+      Object.entries(orders).filter(([,o])=>o.driverId===did&&o.status!=='done').map(([id,o])=>({...o,id})),
+      startPos(did)
+    );
+  }
+  function getDone(did) {
+    return Object.entries(orders).filter(([,o])=>o.driverId===did&&o.status==='done')
+      .map(([id,o])=>({...o,id})).sort((a,b)=>b.addedAt-a.addedAt);
   }
 
   if (!fbReady) return (
-    <div className="app"><div className="empty-txt" style={{marginTop:60}}>
-      <div className="spin" style={{width:24,height:24,margin:'0 auto 12px'}}/> Connexion à Firebase…
+    <div className="app"><div className="empty-txt" style={{marginTop:80}}>
+      <div className="spin" style={{width:24,height:24,margin:'0 auto 12px'}}/> Connexion…
     </div></div>
   );
 
   const isDriverScreen = screen.startsWith('driver-');
-  const driverId = isDriverScreen ? screen.replace('driver-','') : null;
-  const currentDriver = driverId ? drivers[driverId] : null;
-  const isDirectLink = isDriverScreen && !!window.location.hash;
+  const isTrackScreen  = screen.startsWith('track-');
+  const driverId       = isDriverScreen ? screen.replace('driver-','') : null;
+  const trackOrderId   = isTrackScreen  ? screen.replace('track-','')  : null;
+  const curDriver      = driverId ? drivers[driverId] : null;
+  const isDirectLink   = (isDriverScreen || isTrackScreen) && !!window.location.hash;
 
-  // Vue chauffeur directe (lien envoyé)
-  if (isDirectLink && currentDriver) return (
+  // Vue client tracking
+  if (isTrackScreen && isDirectLink) {
+    const order = orders[trackOrderId];
+    if (!order) return (
+      <div className="app">
+        <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
+        <div className="empty-txt" style={{marginTop:60}}>
+          <div className="spin" style={{width:24,height:24,margin:'0 auto 12px'}}/> Chargement…
+        </div>
+      </div>
+    );
+    const did = order.driverId;
+    const route = did ? getRoute(did) : [];
+    const sp    = did ? startPos(did) : null;
+    return (
+      <div className="app">
+        <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
+        <CustomerView order={{...order, id:trackOrderId}} route={route} sp={sp}/>
+      </div>
+    );
+  }
+
+  if (isDirectLink && curDriver) return (
     <div className="app">
       <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
-      <DriverView driver={{...currentDriver, id: driverId}}
-        route={getRoute(driverId)} doneOrders={getDoneOrders(driverId)}
-        onDone={id => updateOrder(id, {status:'done'})} onBack={null} />
-      {toast && <Toast msg={toast} onDone={() => setToast('')}/>}
+      <DriverView driver={{...curDriver,id:driverId}} route={getRoute(driverId)} done={getDone(driverId)}
+        sp={startPos(driverId)} onDone={(id,amt)=>updateOrder(id,{status:'done',amount:amt??null})} onBack={null}/>
+      {toast && <Toast msg={toast} onDone={()=>setToast('')}/>}
     </div>
   );
 
@@ -321,39 +391,41 @@ function App() {
     <div className="app">
       <header className="hdr">
         <span className="hdr-logo">LIVR<em>AI</em>SON</span>
-        {isDriverScreen ? (
-          <button className="tab on" onClick={() => setScreen('driver-select')}>← Retour</button>
-        ) : (
-          <>
-            <button className={`tab ${screen==='admin'?'on':''}`} onClick={() => setScreen('admin')}>Admin</button>
-            <button className={`tab ${screen!=='admin'?'on':''}`} onClick={() => setScreen('driver-select')}>Chauffeur</button>
-          </>
-        )}
+        {isDriverScreen
+          ? <button className="tab on" onClick={()=>setScreen('driver-select')}>← Retour</button>
+          : <>
+              <button className={`tab ${screen==='admin'?'on':''}`} onClick={()=>setScreen('admin')}>Admin</button>
+              <button className={`tab ${screen!=='admin'?'on':''}`} onClick={()=>setScreen('driver-select')}>Chauffeur</button>
+            </>
+        }
       </header>
 
-      {screen === 'admin' && (
-        <AdminView drivers={drivers} orders={orders} getRoute={getRoute} getDoneOrders={getDoneOrders}
+      {screen==='admin' && (
+        <AdminView drivers={drivers} orders={orders}
+          getRoute={getRoute} getDone={getDone} startPos={startPos}
           addDriver={addDriver} removeDriver={removeDriver} updateDriver={updateDriver}
-          addOrder={addOrder} updateOrder={updateOrder} deleteOrder={deleteOrder}
-          onToast={showToast} />
+          updateOrder={updateOrder} deleteOrder={deleteOrder}
+          onToast={setToast}/>
       )}
-      {screen === 'driver-select' && (
-        <SelectDriver drivers={drivers} orders={orders} onSelect={id => setScreen(`driver-${id}`)} />
+      {screen==='driver-select' && (
+        <SelectDriver drivers={drivers} orders={orders} onSelect={id=>setScreen(`driver-${id}`)}/>
       )}
-      {isDriverScreen && currentDriver && (
-        <DriverView driver={{...currentDriver, id: driverId}}
-          route={getRoute(driverId)} doneOrders={getDoneOrders(driverId)}
-          onDone={id => updateOrder(id, {status:'done'})} onBack={() => setScreen('driver-select')} />
+      {isDriverScreen && curDriver && (
+        <DriverView driver={{...curDriver,id:driverId}} route={getRoute(driverId)} done={getDone(driverId)}
+          sp={startPos(driverId)} onDone={(id,amt)=>updateOrder(id,{status:'done',amount:amt??null})}
+          onBack={()=>setScreen('driver-select')}/>
       )}
-      {toast && <Toast msg={toast} onDone={() => setToast('')}/>}
+      {toast && <Toast msg={toast} onDone={()=>setToast('')}/>}
     </div>
   );
 }
 
-// ═══ ADMIN VIEW ═════════════════════════════════════════════
-function AdminView({ drivers, orders, getRoute, getDoneOrders, addDriver, removeDriver, updateDriver, addOrder, updateOrder, deleteOrder, onToast }) {
+// ══════════════════════════════════════════════════════════
+// ADMIN VIEW
+// ══════════════════════════════════════════════════════════
+function AdminView({ drivers, orders, getRoute, getDone, startPos, addDriver, removeDriver, updateDriver, updateOrder, deleteOrder, onToast }) {
   const [newName, setNewName] = useState('');
-  const [form, setForm] = useState({ client:'', address:'', driverId:'', note:'' });
+  const [form, setForm] = useState({client:'',address:'',driverId:'',note:''});
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
 
@@ -362,70 +434,68 @@ function AdminView({ drivers, orders, getRoute, getDoneOrders, addDriver, remove
     setLoading(true); setErr('');
     const ts = Date.now();
     const order = {
-      client: form.client.trim(), address: form.address.trim(),
-      note: form.note.trim(), driverId: form.driverId || null,
-      addedAt: ts, deadline: ts + DEADLINE_MS,
-      status: 'pending', lat: null, lng: null, displayName: null
+      client:form.client.trim(), address:form.address.trim(), note:form.note.trim(),
+      driverId:form.driverId||null, addedAt:ts, deadline:ts+DEADLINE_MS,
+      status:'pending', lat:null, lng:null, displayName:null
     };
     const pushed = await dbPush('orders', order);
-    const newKey = pushed.key;
-    setForm({ client:'', address:'', driverId:'', note:'' });
+    setForm({client:'',address:'',driverId:'',note:''});
     try {
       const geo = await geocodeAddress(order.address);
-      await updateOrder(newKey, { lat: geo.lat, lng: geo.lng, displayName: geo.displayName });
-    } catch(e) { setErr(`GPS non trouvé — commande ajoutée quand même`); }
+      await updateOrder(pushed.key, {lat:geo.lat, lng:geo.lng, displayName:geo.displayName});
+    } catch(e) { setErr('GPS non trouvé — commande ajoutée quand même'); }
     finally { setLoading(false); }
   }
 
-  const unassigned = Object.entries(orders).filter(([,o]) => !o.driverId && o.status !== 'done');
+  const unassigned = Object.entries(orders).filter(([,o])=>!o.driverId&&o.status!=='done');
 
   return (
     <div className="content">
-      {/* NOUVELLE COMMANDE */}
+
       <div className="card">
         <div className="card-pad">
           <div className="sec-label">Nouvelle commande</div>
           <div className="fld">
             <label className="fld-lbl">Nom du client</label>
             <input className="inp" placeholder="Ex : Mohammed D." value={form.client}
-              onChange={e => setForm(f=>({...f, client:e.target.value}))} />
+              onChange={e=>setForm(f=>({...f,client:e.target.value}))}/>
           </div>
           <div className="fld">
             <label className="fld-lbl">Adresse de livraison</label>
             <input className="inp" placeholder="Ex : 14 rue de la Paix, Lyon" value={form.address}
-              onChange={e => setForm(f=>({...f, address:e.target.value}))}
-              onKeyDown={e => e.key==='Enter' && handleAdd()} />
+              onChange={e=>setForm(f=>({...f,address:e.target.value}))}
+              onKeyDown={e=>e.key==='Enter'&&handleAdd()}/>
           </div>
           <div className="fld">
             <label className="fld-lbl">Chauffeur</label>
-            <select className="inp" value={form.driverId} onChange={e => setForm(f=>({...f, driverId:e.target.value}))}>
+            <select className="inp" value={form.driverId} onChange={e=>setForm(f=>({...f,driverId:e.target.value}))}>
               <option value="">— Non assigné</option>
-              {Object.entries(drivers).map(([id,d]) => <option key={id} value={id}>{d.name}</option>)}
+              {Object.entries(drivers).map(([id,d])=><option key={id} value={id}>{d.name}</option>)}
             </select>
           </div>
           <div className="fld">
             <label className="fld-lbl">Message pour le livreur</label>
             <textarea className="inp" rows={3} value={form.note}
               placeholder="Ex : 2x burger, 1x frites — 24€ — code: 1492"
-              onChange={e => setForm(f=>({...f, note:e.target.value}))}
+              onChange={e=>setForm(f=>({...f,note:e.target.value}))}
               style={{resize:'none',lineHeight:'1.5'}}/>
           </div>
           {loading && <div className="geocoding-row"><span className="spin"/> Localisation GPS…</div>}
           {err && <div className="err">⚠ {err}</div>}
-          <button className="btn-main" onClick={handleAdd} disabled={!form.client.trim()||!form.address.trim()||loading}>
+          <button className="btn-main" onClick={handleAdd}
+            disabled={!form.client.trim()||!form.address.trim()||loading}>
             + Ajouter la commande
           </button>
         </div>
       </div>
 
-      {/* CHAUFFEURS */}
       <div className="card">
         <div className="card-pad" style={{paddingBottom:0}}>
           <div className="sec-label">Chauffeurs ({Object.keys(drivers).length})</div>
         </div>
-        {Object.keys(drivers).length === 0 && <div className="empty-txt">Aucun chauffeur</div>}
-        {Object.entries(drivers).map(([id,d]) => {
-          const n = Object.values(orders).filter(o => o.driverId===id && o.status!=='done').length;
+        {Object.keys(drivers).length===0 && <div className="empty-txt">Aucun chauffeur</div>}
+        {Object.entries(drivers).map(([id,d])=>{
+          const n = Object.values(orders).filter(o=>o.driverId===id&&o.status!=='done').length;
           const link = `${window.location.href.split('#')[0]}#driver-${id}`;
           return (
             <div key={id}>
@@ -433,113 +503,131 @@ function AdminView({ drivers, orders, getRoute, getDoneOrders, addDriver, remove
                 <div className="dot" style={{background:d.color}}/>
                 <span className="driver-row-name">{d.name}</span>
                 <span className="driver-row-n">{n} cmd</span>
-                <button className="btn-sm" style={{color:'#06D6A0'}} onClick={() => {
-                  navigator.clipboard.writeText(link);
-                  onToast('🔗 Lien copié !');
+                <button className="btn-sm" style={{color:'#06D6A0'}} onClick={()=>{
+                  navigator.clipboard.writeText(link); onToast('🔗 Lien copié !');
                 }}>🔗 Lien</button>
-                <button className="btn-sm btn-del" onClick={() => removeDriver(id)}>✕</button>
+                <button className="btn-sm btn-del" onClick={()=>removeDriver(id)}>✕</button>
               </div>
-              <DriverBaseRow driver={{...d, id}} onUpdate={updateDriver} />
+              <DriverBaseRow driver={{...d,id}} onUpdate={updateDriver}/>
             </div>
           );
         })}
         <div className="add-row">
           <input className="add-inp" placeholder="Prénom du chauffeur" value={newName}
-            onChange={e => setNewName(e.target.value)}
-            onKeyDown={e => { if(e.key==='Enter'&&newName.trim()){addDriver(newName);setNewName('');} }} />
-          <button className="btn-add" onClick={() => { if(newName.trim()){addDriver(newName);setNewName('');} }}>+ Ajouter</button>
+            onChange={e=>setNewName(e.target.value)}
+            onKeyDown={e=>{if(e.key==='Enter'&&newName.trim()){addDriver(newName);setNewName('');}}}/>
+          <button className="btn-add" onClick={()=>{if(newName.trim()){addDriver(newName);setNewName('');}}}>+ Ajouter</button>
         </div>
       </div>
 
-      {/* NON ASSIGNÉES */}
-      {unassigned.length > 0 && (
+      {unassigned.length>0 && (
         <div className="card">
           <div className="card-pad" style={{paddingBottom:0}}>
             <div className="sec-label">⚠ Non assignées ({unassigned.length})</div>
           </div>
-          {unassigned.map(([id,o]) => (
+          {unassigned.map(([id,o])=>(
             <div className="unassigned-row" key={id}>
               <div className="u-info">
                 <div className="u-client">{o.client}</div>
                 <div className="u-addr">{o.address}</div>
               </div>
               <div style={{display:'flex',gap:6}}>
-                <select className="btn-sm" style={{color:'var(--accent)'}} value="" onChange={e => { if(e.target.value) updateOrder(id,{driverId:e.target.value}); }}>
+                <select className="btn-sm" style={{color:'var(--accent)'}} value=""
+                  onChange={e=>{if(e.target.value)updateOrder(id,{driverId:e.target.value});}}>
                   <option value="">Assigner →</option>
-                  {Object.entries(drivers).map(([did,d]) => <option key={did} value={did}>{d.name}</option>)}
+                  {Object.entries(drivers).map(([did,d])=><option key={did} value={did}>{d.name}</option>)}
                 </select>
-                <button className="btn-sm btn-del" onClick={() => deleteOrder(id)}>✕</button>
+                <button className="btn-sm btn-del" onClick={()=>deleteOrder(id)}>✕</button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* ROUTES PAR CHAUFFEUR */}
-      {Object.entries(drivers).map(([id,d]) => {
-        const route = getRoute(id);
-        const doneOrders = getDoneOrders(id);
-        return (
-          <div className="card" key={id}>
-            <div className="route-hdr">
-              <div className="dot" style={{background:d.color}}/>
-              <span className="route-hdr-name">{d.name}</span>
-              <span className="route-hdr-n">{route.length} à livrer{doneOrders.length>0?` · ${doneOrders.length} ✓`:''}</span>
-            </div>
-            {route.length===0 && doneOrders.length===0 && <div className="empty-txt">Aucune commande assignée</div>}
-            {route.map((o,i) => {
-              const u = urgencyLevel(o.deadline);
-              return (
-                <div className="order-row" key={o.id}>
-                  <div className="o-num">{i+1}</div>
-                  <div className="o-body">
-                    <div className="o-client">{o.client}</div>
-                    <div className="o-addr">{o.displayName||o.address}</div>
-                    <div className="o-meta">
-                      <span className="o-time">↓ {fmtTime(o.addedAt)}</span>
-                      <span className={`badge b-${u}`}>{fmtCountdown(o.deadline)} · {fmtTime(o.deadline)}</span>
-                    </div>
-                  </div>
-                  <div className="o-actions">
-                    <a className="btn-sm" href={wazeUrl(o)} target="_blank" style={{color:'#4FC3F7',textDecoration:'none'}}>Waze</a>
-                    <select className="btn-sm" value={id} onChange={e => updateOrder(o.id,{driverId:e.target.value||null})} style={{fontSize:'9px'}}>
-                      {Object.entries(drivers).map(([did,dr]) => <option key={did} value={did}>{dr.name}</option>)}
-                      <option value="">Non assigné</option>
-                    </select>
-                    <button className="btn-sm btn-del" onClick={() => deleteOrder(o.id)}>✕</button>
-                  </div>
-                </div>
-              );
-            })}
-            {doneOrders.length > 0 && (
-              <>
-                <div style={{padding:'6px 14px',background:'#0d0d0d',borderTop:'1px solid var(--border)',fontSize:10,color:'var(--muted)',letterSpacing:'1.5px',textTransform:'uppercase',fontWeight:700}}>
-                  ✓ Livrées
-                </div>
-                {doneOrders.map(o => (
-                  <div className="order-row" key={o.id} style={{opacity:.4}}>
-                    <div className="o-num" style={{color:'var(--ok)'}}>✓</div>
-                    <div className="o-body">
-                      <div className="o-client">{o.client}</div>
-                      <div className="o-addr">{o.displayName||o.address}</div>
-                    </div>
-                    <button className="btn-sm btn-del" onClick={() => deleteOrder(o.id)}>✕</button>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        );
-      })}
+      {Object.entries(drivers).map(([id,d])=>(
+        <AdminDriverCard key={id} driver={{...d,id}}
+          route={getRoute(id)} doneOrders={getDone(id)} sp={startPos(id)}
+          allDrivers={drivers} updateOrder={updateOrder} deleteOrder={deleteOrder}/>
+      ))}
+
       <div style={{height:20}}/>
     </div>
   );
 }
 
-// ═══ DRIVER BASE ROW ════════════════════════════════════════
+// ── Admin Driver Card ────────────────────────────────────────
+function AdminDriverCard({ driver, route, doneOrders, sp, allDrivers, updateOrder, deleteOrder }) {
+  const etas  = useETAs(route, sp);
+  const total = doneOrders.reduce((s,o) => s + (parseFloat(o.amount)||0), 0);
+
+  return (
+    <div className="card">
+      <div className="route-hdr">
+        <div className="dot" style={{background:driver.color}}/>
+        <span className="route-hdr-name">{driver.name}</span>
+        <span className="route-hdr-n">{route.length} à livrer{doneOrders.length>0?` · ${doneOrders.length} ✓`:''}</span>
+      </div>
+      {total > 0 && <div className="route-total">💰 Encaissé aujourd'hui : {fmtEuro(total)}</div>}
+      {route.length===0 && doneOrders.length===0 && <div className="empty-txt">Aucune commande assignée</div>}
+
+      {route.map((o,i)=>{
+        const u = urgency(o.deadline), eta = etas[i];
+        return (
+          <div className="order-row" key={o.id}>
+            <div className="o-num">{i+1}</div>
+            <div className="o-body">
+              <div className="o-client">{o.client}</div>
+              <div className="o-addr">{o.displayName||o.address}</div>
+              <div className="o-meta">
+                <span className="o-time">↓ {fmtTime(o.addedAt)}</span>
+                <span className={`badge b-${u}`}>{fmtCountdown(o.deadline)} · {fmtTime(o.deadline)}</span>
+                {o.driverEta
+                  ? <span className="badge" style={{background:'#001830',color:'#4FC3F7'}}>⏱ {fmtTime(o.driverEta)}</span>
+                  : eta ? <span className="badge b-eta">🕐 ~{fmtTime(eta)}</span> : null}
+                {!o.lat && <span className="badge" style={{background:'#1a1a00',color:'#555'}}>GPS…</span>}
+              </div>
+            </div>
+            <div className="o-actions">
+              <a className="btn-sm" href={wazeUrl(o)} target="_blank" style={{color:'#4FC3F7',textDecoration:'none'}}>Waze</a>
+              <button className="btn-sm" style={{color:'#C77DFF'}} onClick={()=>{
+                const link = `${window.location.href.split('#')[0]}#track-${o.id}`;
+                navigator.clipboard.writeText(link);
+              }}>🔗 Client</button>
+              <select className="btn-sm" value={driver.id}
+                onChange={e=>updateOrder(o.id,{driverId:e.target.value||null})} style={{fontSize:'9px'}}>
+                {Object.entries(allDrivers).map(([did,dr])=><option key={did} value={did}>{dr.name}</option>)}
+                <option value="">Non assigné</option>
+              </select>
+              <button className="btn-sm btn-del" onClick={()=>deleteOrder(o.id)}>✕</button>
+            </div>
+          </div>
+        );
+      })}
+
+      {doneOrders.length>0 && <>
+        <div style={{padding:'6px 14px',background:'#0d0d0d',borderTop:'1px solid var(--border)',fontSize:10,color:'var(--muted)',letterSpacing:'1.5px',textTransform:'uppercase',fontWeight:700}}>
+          ✓ Livrées
+        </div>
+        {doneOrders.map(o=>(
+          <div className="order-row" key={o.id} style={{opacity:.4}}>
+            <div className="o-num" style={{color:'var(--ok)'}}>✓</div>
+            <div className="o-body">
+              <div className="o-client">{o.client}</div>
+              <div className="o-addr">{o.displayName||o.address}</div>
+              {o.amount!=null && <div style={{fontSize:10,color:'var(--ok)',marginTop:2}}>💰 {fmtEuro(o.amount)}</div>}
+            </div>
+            <button className="btn-sm btn-del" onClick={()=>deleteOrder(o.id)}>✕</button>
+          </div>
+        ))}
+      </>}
+    </div>
+  );
+}
+
+// ── Driver Base Row ──────────────────────────────────────────
 function DriverBaseRow({ driver, onUpdate }) {
   const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState(driver.baseAddress || '');
+  const [val, setVal] = useState(driver.baseAddress||'');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
 
@@ -548,7 +636,7 @@ function DriverBaseRow({ driver, onUpdate }) {
     setLoading(true); setErr('');
     try {
       const geo = await geocodeAddress(val.trim());
-      await onUpdate(driver.id, { baseAddress:val.trim(), baseLat:geo.lat, baseLng:geo.lng });
+      await onUpdate(driver.id, {baseAddress:val.trim(), baseLat:geo.lat, baseLng:geo.lng});
       setEditing(false);
     } catch(e) { setErr('Adresse non trouvée'); }
     finally { setLoading(false); }
@@ -561,8 +649,8 @@ function DriverBaseRow({ driver, onUpdate }) {
           <span style={{fontSize:11,color:driver.baseLat?'var(--ok)':'var(--muted)'}}>
             {driver.baseLat ? `📍 Départ : ${driver.baseAddress}` : '📍 Aucun point de départ'}
           </span>
-          <button className="btn-sm" onClick={() => { setVal(driver.baseAddress||''); setEditing(true); }}>
-            {driver.baseLat ? 'Modifier' : '+ Définir'}
+          <button className="btn-sm" onClick={()=>{setVal(driver.baseAddress||'');setEditing(true);}}>
+            {driver.baseLat?'Modifier':'+ Définir'}
           </button>
         </div>
       ) : (
@@ -570,10 +658,10 @@ function DriverBaseRow({ driver, onUpdate }) {
           <div style={{display:'flex',gap:6}}>
             <input className="add-inp" style={{fontSize:13}} autoFocus
               placeholder="Adresse de départ" value={val}
-              onChange={e => setVal(e.target.value)}
-              onKeyDown={e => e.key==='Enter' && save()} />
+              onChange={e=>setVal(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&save()}/>
             <button className="btn-add" onClick={save} disabled={loading||!val.trim()}>{loading?'…':'✓'}</button>
-            <button className="btn-sm" onClick={() => setEditing(false)}>✕</button>
+            <button className="btn-sm" onClick={()=>setEditing(false)}>✕</button>
           </div>
           {err && <span style={{fontSize:11,color:'var(--crit)'}}>{err}</span>}
         </div>
@@ -582,17 +670,17 @@ function DriverBaseRow({ driver, onUpdate }) {
   );
 }
 
-// ═══ SELECT DRIVER ══════════════════════════════════════════
+// ── Select Driver ────────────────────────────────────────────
 function SelectDriver({ drivers, orders, onSelect }) {
   return (
     <div className="sel-wrap">
       <div className="sel-title">Qui es-tu ?</div>
       <div className="sel-sub">Sélectionne ton nom pour voir ta route</div>
       {Object.keys(drivers).length===0 && <div className="empty-txt">Aucun chauffeur configuré</div>}
-      {Object.entries(drivers).map(([id,d]) => {
-        const n = Object.values(orders).filter(o => o.driverId===id && o.status!=='done').length;
+      {Object.entries(drivers).map(([id,d])=>{
+        const n = Object.values(orders).filter(o=>o.driverId===id&&o.status!=='done').length;
         return (
-          <button className="driver-sel-btn" key={id} onClick={() => onSelect(id)}>
+          <button className="driver-sel-btn" key={id} onClick={()=>onSelect(id)}>
             <div className="dot" style={{background:d.color,width:14,height:14}}/>
             <div>
               <span className="driver-sel-name">{d.name}</span>
@@ -605,13 +693,35 @@ function SelectDriver({ drivers, orders, onSelect }) {
   );
 }
 
-// ═══ DRIVER VIEW ════════════════════════════════════════════
-function DriverView({ driver, route, doneOrders = [], onDone, onBack }) {
+// ══════════════════════════════════════════════════════════
+// DRIVER VIEW
+// ══════════════════════════════════════════════════════════
+function DriverView({ driver, route, done, sp, onDone, onBack }) {
   const [time, setTime] = useState(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
-  useEffect(() => {
-    const t = setInterval(() => setTime(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})), 30000);
-    return () => clearInterval(t);
-  }, []);
+  const [pendingId, setPending] = useState(null);
+  const [amtVal, setAmtVal]     = useState('');
+  // ETA Waze
+  const [etaOpenId, setEtaOpen] = useState(null);
+  const [etaInputVal, setEtaInputVal] = useState('');
+  const etas = useETAs(route, sp);
+
+  useEffect(()=>{
+    const t = setInterval(()=>setTime(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})),30000);
+    return ()=>clearInterval(t);
+  },[]);
+
+  function handleLivre(id) { setPending(id); setAmtVal(''); }
+  function confirm() { onDone(pendingId, amtVal!==''?parseFloat(amtVal.replace(',','.')):null); setPending(null); }
+  function skip()    { onDone(pendingId, null); setPending(null); }
+
+  function openEta(id) { setEtaOpen(id); setEtaInputVal(''); }
+  function confirmEta(id) {
+    const ts = parseTimeToTs(etaInputVal);
+    if (ts) { dbUpd(`orders/${id}`, {driverEta: ts}); }
+    setEtaOpen(null);
+  }
+
+  const totalDone = done.reduce((s,o)=>s+(parseFloat(o.amount)||0),0);
 
   return (
     <div className="dv-wrap">
@@ -620,21 +730,24 @@ function DriverView({ driver, route, doneOrders = [], onDone, onBack }) {
         <span className="dv-hdr-name">{driver.name}</span>
         {onBack && <button className="dv-back" onClick={onBack}>← Changer</button>}
       </div>
+
       <div className="dv-clock">
         <div><div className="dv-clock-lbl">Heure</div><div>{time}</div></div>
-        <div style={{textAlign:'right'}}>
-          <div className="dv-clock-lbl">Restantes</div>
-          <div>{route.length}</div>
-        </div>
+        <div style={{textAlign:'right'}}><div className="dv-clock-lbl">Restantes</div><div>{route.length}</div></div>
       </div>
-      {route.length===0 && doneOrders.length===0 && <div className="empty-txt">Aucune livraison pour le moment 👍</div>}
-      {route.length===0 && doneOrders.length>0 && (
-        <div className="empty-txt" style={{color:'var(--ok)'}}>🎉 Toutes les livraisons sont terminées !</div>
+
+      {totalDone > 0 && (
+        <div style={{background:'#0a1a0e',border:'1px solid #0f3d25',borderRadius:10,padding:'10px 14px',marginBottom:14,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <span style={{fontSize:11,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase'}}>Encaissé</span>
+          <span style={{fontFamily:'Space Mono,monospace',fontSize:18,fontWeight:700,color:'var(--ok)'}}>{fmtEuro(totalDone)}</span>
+        </div>
       )}
 
-      {/* COMMANDES ACTIVES — ordre optimisé */}
-      {route.map((o,i) => {
-        const u = urgencyLevel(o.deadline);
+      {route.length===0&&done.length===0 && <div className="empty-txt">Aucune livraison pour le moment 👍</div>}
+      {route.length===0&&done.length>0  && <div className="empty-txt" style={{color:'var(--ok)'}}>🎉 Toutes les livraisons sont terminées !</div>}
+
+      {route.map((o,i)=>{
+        const u = urgency(o.deadline), eta = etas[i], isPending = pendingId===o.id;
         return (
           <div className="dv-order" key={o.id}>
             <div className="dv-order-top">
@@ -642,52 +755,215 @@ function DriverView({ driver, route, doneOrders = [], onDone, onBack }) {
               <div className="dv-body">
                 <div className="dv-client">{o.client}</div>
                 <div className="dv-addr">{o.displayName||o.address}</div>
-                {o.note ? (
-                  <div style={{background:'#1a1400',border:'1px solid #3a2e00',borderRadius:8,padding:'8px 10px',marginBottom:10,fontSize:13,color:'#FFD60A',lineHeight:'1.6',whiteSpace:'pre-wrap'}}>
+                {o.note && (
+                  <div style={{background:'#1a1400',border:'1px solid #3a2e00',borderRadius:8,padding:'8px 10px',marginBottom:8,fontSize:13,color:'#FFD60A',lineHeight:'1.6',whiteSpace:'pre-wrap'}}>
                     📋 {o.note}
                   </div>
-                ) : null}
-                <div className="dv-btns">
-                  <a className="dv-maps" href={wazeUrl(o)} target="_blank">🚗 Waze</a>
-                  <button className="dv-done" onClick={() => onDone(o.id)}>✓ Livré</button>
-                </div>
+                )}
+                {!isPending ? (
+                  <>
+                    <div className="dv-btns">
+                      <a className="dv-maps" href={wazeUrl(o)} target="_blank">🚗 Waze</a>
+                      <button className="dv-done" onClick={()=>handleLivre(o.id)}>✓ Livré</button>
+                    </div>
+                    {/* Bouton ETA Waze — saisir l'heure affichée par Waze */}
+                    {etaOpenId !== o.id ? (
+                      <button onClick={()=>openEta(o.id)} style={{
+                        marginTop:6, background:'transparent', border:'1px solid #003a5a',
+                        color:'#4FC3F7', borderRadius:7, padding:'5px 10px', fontSize:11,
+                        fontFamily:'inherit', cursor:'pointer', width:'100%'
+                      }}>⏱ Saisir heure d'arrivée Waze</button>
+                    ) : (
+                      <div style={{marginTop:6,background:'#001830',border:'1px solid #003a5a',borderRadius:8,padding:10}}>
+                        <div style={{fontSize:11,color:'#4FC3F7',fontWeight:700,marginBottom:6}}>⏱ Heure Waze (ex: 14h35)</div>
+                        <div style={{display:'flex',gap:6}}>
+                          <input
+                            style={{flex:1,background:'var(--s2)',border:'1.5px solid #4FC3F7',color:'var(--text)',borderRadius:7,padding:'7px 10px',fontSize:16,fontFamily:'Space Mono,monospace',outline:'none'}}
+                            placeholder="14:35" value={etaInputVal}
+                            onChange={e=>setEtaInputVal(e.target.value)}
+                            onKeyDown={e=>e.key==='Enter'&&confirmEta(o.id)}
+                            autoFocus inputMode="numeric"/>
+                          <button onClick={()=>confirmEta(o.id)}
+                            style={{background:'#4FC3F7',color:'#000',border:'none',borderRadius:7,padding:'7px 12px',fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>✓</button>
+                          <button onClick={()=>setEtaOpen(null)}
+                            style={{background:'transparent',border:'1px solid var(--border)',color:'var(--muted)',borderRadius:7,padding:'7px 8px',cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+                        </div>
+                      </div>
+                    )}
+                    {o.driverEta && etaOpenId !== o.id && (
+                      <div style={{marginTop:4,fontSize:11,color:'#4FC3F7',textAlign:'center'}}>
+                        ⏱ Arrivée confirmée : {fmtTime(o.driverEta)}
+                        <button onClick={()=>openEta(o.id)} style={{marginLeft:6,background:'transparent',border:'none',color:'var(--muted)',fontSize:10,cursor:'pointer'}}>modifier</button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="amount-box">
+                    <div className="amount-box-lbl">💰 Montant encaissé ?</div>
+                    <div className="amount-row">
+                      <input className="amount-inp" type="number" inputMode="decimal"
+                        placeholder="0.00" value={amtVal}
+                        onChange={e=>setAmtVal(e.target.value)}
+                        onKeyDown={e=>e.key==='Enter'&&confirm()}
+                        autoFocus/>
+                      <span style={{color:'var(--ok)',fontWeight:700,fontSize:16}}>€</span>
+                      <button className="amount-confirm" onClick={confirm}>✓ OK</button>
+                      <button className="amount-skip" onClick={skip}>Passer</button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="dv-order-footer">
               <span className="dv-added">Reçu {fmtTime(o.addedAt)}</span>
-              <span className={`badge b-${u}`}>avant {fmtTime(o.deadline)} · {fmtCountdown(o.deadline)}</span>
+              <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}>
+                {eta && <span className="badge b-eta">🕐 ~{fmtTime(eta)}</span>}
+                <span className={`badge b-${u}`}>avant {fmtTime(o.deadline)} · {fmtCountdown(o.deadline)}</span>
+              </div>
             </div>
           </div>
         );
       })}
 
-      {/* COMMANDES LIVRÉES — en bas, grises */}
-      {doneOrders.length > 0 && (
-        <>
-          <div style={{margin:'16px 0 8px',fontSize:10,color:'var(--muted)',letterSpacing:'2px',textTransform:'uppercase',fontWeight:700,textAlign:'center'}}>
-            ✓ Déjà livrées
-          </div>
-          {doneOrders.map(o => (
-            <div className="dv-order done" key={o.id}>
-              <div className="dv-order-top">
-                <div className="dv-n" style={{color:'var(--ok)'}}>✓</div>
-                <div className="dv-body">
-                  <div className="dv-client">{o.client}</div>
-                  <div className="dv-addr">{o.displayName||o.address}</div>
-                  {o.note ? (
-                    <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>📋 {o.note}</div>
-                  ) : null}
-                </div>
+      {done.length>0 && <>
+        <div style={{margin:'16px 0 8px',fontSize:10,color:'var(--muted)',letterSpacing:'2px',textTransform:'uppercase',fontWeight:700,textAlign:'center'}}>
+          ✓ Déjà livrées
+        </div>
+        {done.map(o=>(
+          <div className="dv-order done" key={o.id}>
+            <div className="dv-order-top">
+              <div className="dv-n" style={{color:'var(--ok)'}}>✓</div>
+              <div className="dv-body">
+                <div className="dv-client">{o.client}</div>
+                <div className="dv-addr">{o.displayName||o.address}</div>
+                {o.note && <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>📋 {o.note}</div>}
               </div>
-              <div className="dv-order-footer">
-                <span className="dv-added">Livré — reçu {fmtTime(o.addedAt)}</span>
+            </div>
+            <div className="dv-order-footer">
+              <span className="dv-added">Livré — {fmtTime(o.addedAt)}</span>
+              <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                {o.amount!=null && <span style={{fontFamily:'Space Mono,monospace',fontSize:12,color:'var(--ok)',fontWeight:700}}>{fmtEuro(o.amount)}</span>}
                 <span style={{color:'var(--ok)',fontSize:11,fontWeight:700}}>LIVRÉ</span>
               </div>
             </div>
-          ))}
-        </>
-      )}
+          </div>
+        ))}
+      </>}
       <div style={{height:20}}/>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════
+// CUSTOMER VIEW — page de suivi client
+// ══════════════════════════════════════════════════════════
+function CustomerView({ order, route, sp }) {
+  const etas = useETAs(route, sp);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const t = setInterval(()=>setNow(Date.now()), 30000); return ()=>clearInterval(t); }, []);
+
+  const pos  = route.findIndex(o => o.id === order.id);
+  const calcEta = pos >= 0 ? etas[pos] : null;
+  // ETA confirmée par le livreur > ETA calculée
+  const eta = order.driverEta || calcEta;
+  const etaIsConfirmed = !!order.driverEta;
+  const isDone = order.status === 'done';
+
+  // Texte position
+  const posLabel = pos === 0 ? 'Prochaine livraison' :
+                   pos === 1 ? '2ème sur la liste' :
+                   pos === 2 ? '3ème sur la liste' :
+                   pos > 2   ? `${pos+1}ème sur la liste` : null;
+
+  // Temps restant avant ETA
+  const etaWait = eta ? eta - now : null;
+  const etaWaitTxt = etaWait != null
+    ? etaWait <= 0 ? 'Imminent !'
+    : etaWait < 60000 ? 'Moins d\'1 minute'
+    : (() => { const h=Math.floor(etaWait/3600000), m=Math.floor((etaWait%3600000)/60000); return h>0?`${h}h${String(m).padStart(2,'0')}`:`${m} min`; })()
+    : null;
+
+  const MAX_WAIT_MS = 3.5 * 60 * 60 * 1000;
+  const waitFromOrder = eta ? eta - order.addedAt : now - order.addedAt;
+  const tooLong = waitFromOrder > MAX_WAIT_MS;
+
+  return (
+    <div style={{padding:20, display:'flex', flexDirection:'column', gap:16, maxWidth:400, margin:'0 auto'}}>
+
+      {/* STATUT PRINCIPAL */}
+      {isDone ? (
+        <div style={{background:'#0a2a1a',border:'2px solid var(--ok)',borderRadius:16,padding:24,textAlign:'center'}}>
+          <div style={{fontSize:48,marginBottom:8}}>✅</div>
+          <div style={{fontSize:22,fontWeight:800,color:'var(--ok)',marginBottom:4}}>Livré !</div>
+          <div style={{fontSize:13,color:'var(--muted)'}}>Votre commande a été livrée. Merci !</div>
+        </div>
+      ) : pos < 0 ? (
+        <div style={{background:'var(--s1)',border:'1px solid var(--border)',borderRadius:16,padding:24,textAlign:'center'}}>
+          <div style={{fontSize:40,marginBottom:8}}>⏳</div>
+          <div style={{fontSize:18,fontWeight:800,marginBottom:4}}>En préparation</div>
+          <div style={{fontSize:13,color:'var(--muted)'}}>Votre commande est en cours de traitement, elle sera assignée à un livreur très bientôt.</div>
+        </div>
+      ) : (
+        <div style={{background:'var(--s1)',border:'2px solid var(--accent)',borderRadius:16,padding:24,textAlign:'center'}}>
+          <div style={{fontSize:40,marginBottom:8}}>🛵</div>
+          <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>En route !</div>
+          {posLabel && <div style={{display:'inline-block',background:'#2a1400',color:'var(--accent)',borderRadius:20,padding:'4px 14px',fontSize:13,fontWeight:700,marginBottom:12}}>{posLabel}</div>}
+
+          {eta ? (
+            <div style={{background:'#001830',border:`1px solid ${etaIsConfirmed?'#4FC3F7':'#003a5a'}`,borderRadius:12,padding:16,marginTop:8}}>
+              <div style={{fontSize:11,color:'var(--muted)',fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:4}}>
+                {etaIsConfirmed ? '⏱ Arrivée confirmée par votre livreur' : 'Heure d\'arrivée estimée'}
+              </div>
+              <div style={{fontSize:36,fontWeight:800,color:'#4FC3F7',fontFamily:'Space Mono,monospace'}}>{fmtTime(eta)}</div>
+              {etaWaitTxt && <div style={{fontSize:13,color:'var(--muted)',marginTop:4}}>dans environ <strong style={{color:'#4FC3F7'}}>{etaWaitTxt}</strong></div>}
+            </div>
+          ) : (
+            <div style={{color:'var(--muted)',fontSize:13,marginTop:8}}>
+              <span className="spin" style={{marginRight:6}}/> Calcul en cours…
+            </div>
+          )}
+
+          {/* Priorité gérée automatiquement par l'algorithme */}
+        </div>
+      )}
+
+      {/* INFOS COMMANDE */}
+      <div style={{background:'var(--s1)',border:'1px solid var(--border)',borderRadius:14,padding:16}}>
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:12}}>Votre commande</div>
+        <div style={{fontWeight:700,fontSize:16,marginBottom:4}}>{order.client}</div>
+        <div style={{fontFamily:'Space Mono,monospace',fontSize:11,color:'var(--muted)',marginBottom:8}}>{order.address}</div>
+        {order.note && (
+          <div style={{background:'#1a1400',border:'1px solid #3a2e00',borderRadius:8,padding:'8px 10px',fontSize:13,color:'#FFD60A',lineHeight:'1.6'}}>
+            📋 {order.note}
+          </div>
+        )}
+        <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid var(--border)',fontSize:11,color:'var(--muted)',display:'flex',justifyContent:'space-between'}}>
+          <span>Commande reçue à {fmtTime(order.addedAt)}</span>
+          <span>Limite : {fmtTime(order.deadline)}</span>
+        </div>
+      </div>
+
+      {/* BARRE DE PROGRESSION */}
+      {!isDone && pos >= 0 && (
+        <div style={{background:'var(--s1)',border:'1px solid var(--border)',borderRadius:14,padding:16}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:10}}>Progression</div>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            {[...Array(Math.min(route.length,5))].map((_,i) => (
+              <div key={i} style={{
+                flex:1, height:6, borderRadius:3,
+                background: i < pos ? 'var(--ok)' : i === pos ? 'var(--accent)' : 'var(--border)',
+                transition:'background .3s'
+              }}/>
+            ))}
+            {route.length > 5 && <span style={{fontSize:10,color:'var(--muted)'}}>+{route.length-5}</span>}
+          </div>
+          <div style={{display:'flex',justifyContent:'space-between',marginTop:6,fontSize:11,color:'var(--muted)'}}>
+            <span>{pos} livraison{pos!==1?'s':''} avant vous</span>
+            <span>{route.length - pos - 1} après</span>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
