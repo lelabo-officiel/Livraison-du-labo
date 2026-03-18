@@ -405,6 +405,7 @@ function App() {
           getRoute={getRoute} getDone={getDone} startPos={startPos}
           addDriver={addDriver} removeDriver={removeDriver} updateDriver={updateDriver}
           updateOrder={updateOrder} deleteOrder={deleteOrder}
+          resetAll={async()=>{ for(const id of Object.keys(orders)) await dbRem(`orders/${id}`); }}
           onToast={setToast}/>
       )}
       {screen==='driver-select' && (
@@ -423,7 +424,7 @@ function App() {
 // ══════════════════════════════════════════════════════════
 // ADMIN VIEW
 // ══════════════════════════════════════════════════════════
-function AdminView({ drivers, orders, getRoute, getDone, startPos, addDriver, removeDriver, updateDriver, updateOrder, deleteOrder, onToast }) {
+function AdminView({ drivers, orders, getRoute, getDone, startPos, addDriver, removeDriver, updateDriver, updateOrder, deleteOrder, resetAll, onToast }) {
   const [newName, setNewName] = useState('');
   const [form, setForm] = useState({client:'',address:'',driverId:'',note:''});
   const [loading, setLoading] = useState(false);
@@ -550,6 +551,11 @@ function AdminView({ drivers, orders, getRoute, getDone, startPos, addDriver, re
           allDrivers={drivers} updateOrder={updateOrder} deleteOrder={deleteOrder}/>
       ))}
 
+      {/* RESET JOURNÉE */}
+      {Object.keys(orders).length > 0 && (
+        <ResetButton onReset={resetAll}/>
+      )}
+
       <div style={{height:20}}/>
     </div>
   );
@@ -568,6 +574,22 @@ function AdminDriverCard({ driver, route, doneOrders, sp, allDrivers, updateOrde
         <span className="route-hdr-n">{route.length} à livrer{doneOrders.length>0?` · ${doneOrders.length} ✓`:''}</span>
       </div>
       {total > 0 && <div className="route-total">💰 Encaissé aujourd'hui : {fmtEuro(total)}</div>}
+      {driver.stock > 0 && (
+        <div style={{display:'flex',gap:0,borderBottom:'1px solid var(--border)'}}>
+          <div style={{flex:1,padding:'6px 14px',background:'#061a0e',textAlign:'center',borderRight:'1px solid var(--border)'}}>
+            <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase'}}>Stock départ</div>
+            <div style={{fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,color:'var(--muted)'}}>{fmtEuro(driver.stock)}</div>
+          </div>
+          <div style={{flex:1,padding:'6px 14px',background:'#061a0e',textAlign:'center',borderRight:'1px solid var(--border)'}}>
+            <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase'}}>Encaissé</div>
+            <div style={{fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,color:'var(--ok)'}}>{fmtEuro(total)}</div>
+          </div>
+          <div style={{flex:1,padding:'6px 14px',background:'#061a0e',textAlign:'center'}}>
+            <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase'}}>Restant</div>
+            <div style={{fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,color: (driver.stock-total)<0?'var(--crit)':'#4FC3F7'}}>{fmtEuro(Math.max(0,driver.stock-total))}</div>
+          </div>
+        </div>
+      )}
       {route.length===0 && doneOrders.length===0 && <div className="empty-txt">Aucune commande assignée</div>}
 
       {route.map((o,i)=>{
@@ -609,63 +631,203 @@ function AdminDriverCard({ driver, route, doneOrders, sp, allDrivers, updateOrde
           ✓ Livrées
         </div>
         {doneOrders.map(o=>(
-          <div className="order-row" key={o.id} style={{opacity:.4}}>
-            <div className="o-num" style={{color:'var(--ok)'}}>✓</div>
-            <div className="o-body">
-              <div className="o-client">{o.client}</div>
-              <div className="o-addr">{o.displayName||o.address}</div>
-              {o.amount!=null && <div style={{fontSize:10,color:'var(--ok)',marginTop:2}}>💰 {fmtEuro(o.amount)}</div>}
-            </div>
-            <button className="btn-sm btn-del" onClick={()=>deleteOrder(o.id)}>✕</button>
-          </div>
+          <DoneOrderRow key={o.id} order={o} onUpdate={updateOrder} onDelete={deleteOrder}/>
         ))}
       </>}
     </div>
   );
 }
 
+// ── Done Order Row (admin + driver) ─────────────────────────
+function DoneOrderRow({ order: o, onUpdate, onDelete, compact=false }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState('');
+
+  function startEdit() { setVal(o.amount != null ? String(o.amount) : ''); setEditing(true); }
+  function save() {
+    const parsed = val.trim() === '' ? null : parseFloat(val.replace(',','.'));
+    onUpdate(o.id, { amount: isNaN(parsed) ? null : parsed });
+    setEditing(false);
+  }
+
+  if (compact) {
+    // Vue livreur — commandes déjà livrées
+    return (
+      <div className="dv-order done">
+        <div className="dv-order-top">
+          <div className="dv-n" style={{color:'var(--ok)'}}>✓</div>
+          <div className="dv-body">
+            <div className="dv-client">{o.client}</div>
+            <div className="dv-addr">{o.displayName||o.address}</div>
+            {o.note && <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>📋 {o.note}</div>}
+          </div>
+        </div>
+        <div className="dv-order-footer">
+          <span className="dv-added">Livré — {fmtTime(o.addedAt)}</span>
+          <div style={{display:'flex',gap:6,alignItems:'center'}}>
+            {!editing ? (
+              <>
+                {o.amount!=null && <span style={{fontFamily:'Space Mono,monospace',fontSize:12,color:'var(--ok)',fontWeight:700}}>{fmtEuro(o.amount)}</span>}
+                <button onClick={startEdit} style={{background:'transparent',border:'1px solid #3a3a3a',color:'var(--muted)',borderRadius:5,padding:'2px 7px',fontSize:10,cursor:'pointer',fontFamily:'inherit'}}>
+                  {o.amount!=null ? '✏️' : '+ montant'}
+                </button>
+              </>
+            ) : (
+              <>
+                <input style={{width:70,background:'var(--s2)',border:'1px solid var(--ok)',color:'var(--text)',borderRadius:5,padding:'2px 6px',fontSize:13,fontFamily:'Space Mono,monospace',outline:'none'}}
+                  type="number" inputMode="decimal" value={val} autoFocus
+                  onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&save()}/>
+                <span style={{color:'var(--ok)',fontSize:12}}>€</span>
+                <button onClick={save} style={{background:'var(--ok)',color:'#000',border:'none',borderRadius:5,padding:'2px 8px',fontSize:11,fontWeight:800,cursor:'pointer'}}>✓</button>
+                <button onClick={()=>setEditing(false)} style={{background:'transparent',border:'none',color:'var(--muted)',fontSize:11,cursor:'pointer'}}>✕</button>
+              </>
+            )}
+            <span style={{color:'var(--ok)',fontSize:11,fontWeight:700}}>LIVRÉ</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Vue admin
+  return (
+    <div className="order-row" style={{opacity:.5}}>
+      <div className="o-num" style={{color:'var(--ok)'}}>✓</div>
+      <div className="o-body">
+        <div className="o-client">{o.client}</div>
+        <div className="o-addr">{o.displayName||o.address}</div>
+        {!editing ? (
+          <div style={{display:'flex',alignItems:'center',gap:6,marginTop:3}}>
+            {o.amount!=null && <span style={{fontSize:10,color:'var(--ok)',fontFamily:'Space Mono,monospace',fontWeight:700}}>💰 {fmtEuro(o.amount)}</span>}
+            <button onClick={startEdit} style={{background:'transparent',border:'1px solid #3a3a3a',color:'var(--muted)',borderRadius:4,padding:'1px 6px',fontSize:9,cursor:'pointer',fontFamily:'Space Mono,monospace'}}>
+              {o.amount!=null ? '✏️ modifier' : '+ montant'}
+            </button>
+            {o.amount!=null && (
+              <button onClick={()=>onUpdate(o.id,{amount:null})} style={{background:'transparent',border:'1px solid #3a3a3a',color:'var(--crit)',borderRadius:4,padding:'1px 6px',fontSize:9,cursor:'pointer',fontFamily:'Space Mono,monospace'}}>✕ effacer</button>
+            )}
+          </div>
+        ) : (
+          <div style={{display:'flex',gap:5,alignItems:'center',marginTop:4}}>
+            <input style={{width:80,background:'var(--s2)',border:'1px solid var(--ok)',color:'var(--text)',borderRadius:5,padding:'3px 7px',fontSize:13,fontFamily:'Space Mono,monospace',outline:'none'}}
+              type="number" inputMode="decimal" value={val} autoFocus
+              onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&save()}/>
+            <span style={{color:'var(--ok)',fontSize:12}}>€</span>
+            <button onClick={save} style={{background:'var(--ok)',color:'#000',border:'none',borderRadius:5,padding:'3px 9px',fontSize:11,fontWeight:800,cursor:'pointer'}}>✓</button>
+            <button onClick={()=>setEditing(false)} style={{background:'transparent',border:'none',color:'var(--muted)',fontSize:11,cursor:'pointer'}}>✕</button>
+          </div>
+        )}
+      </div>
+      <button className="btn-sm btn-del" onClick={()=>onDelete(o.id)}>✕</button>
+    </div>
+  );
+}
+
+// ── Reset Button ─────────────────────────────────────────────
+function ResetButton({ onReset }) {
+  const [confirm, setConfirm] = useState(false);
+  if (!confirm) return (
+    <div style={{textAlign:'center',paddingTop:8}}>
+      <button onClick={()=>setConfirm(true)} style={{
+        background:'transparent', border:'1.5px solid #3a0a0a', color:'var(--crit)',
+        borderRadius:10, padding:'10px 24px', fontFamily:'inherit', fontWeight:700,
+        fontSize:13, cursor:'pointer'
+      }}>🗑 Réinitialiser la journée</button>
+    </div>
+  );
+  return (
+    <div style={{background:'#1a0505',border:'2px solid var(--crit)',borderRadius:12,padding:16,textAlign:'center'}}>
+      <div style={{fontSize:14,fontWeight:700,color:'var(--crit)',marginBottom:8}}>⚠️ Supprimer toutes les commandes du jour ?</div>
+      <div style={{fontSize:12,color:'var(--muted)',marginBottom:12}}>Les chauffeurs et leurs points de départ seront conservés.</div>
+      <div style={{display:'flex',gap:10,justifyContent:'center'}}>
+        <button onClick={()=>{onReset();setConfirm(false);}} style={{
+          background:'var(--crit)',color:'#fff',border:'none',borderRadius:8,
+          padding:'9px 20px',fontWeight:800,fontSize:13,cursor:'pointer',fontFamily:'inherit'
+        }}>Oui, tout supprimer</button>
+        <button onClick={()=>setConfirm(false)} style={{
+          background:'transparent',border:'1px solid var(--border)',color:'var(--muted)',
+          borderRadius:8,padding:'9px 16px',fontSize:13,cursor:'pointer',fontFamily:'inherit'
+        }}>Annuler</button>
+      </div>
+    </div>
+  );
+}
+
 // ── Driver Base Row ──────────────────────────────────────────
 function DriverBaseRow({ driver, onUpdate }) {
-  const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState(driver.baseAddress||'');
+  const [editingAddr, setEditingAddr] = useState(false);
+  const [editingStock, setEditingStock] = useState(false);
+  const [addrVal, setAddrVal] = useState(driver.baseAddress||'');
+  const [stockVal, setStockVal] = useState('');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
 
-  async function save() {
-    if (!val.trim()) return;
+  async function saveAddr() {
+    if (!addrVal.trim()) return;
     setLoading(true); setErr('');
     try {
-      const geo = await geocodeAddress(val.trim());
-      await onUpdate(driver.id, {baseAddress:val.trim(), baseLat:geo.lat, baseLng:geo.lng});
-      setEditing(false);
+      const geo = await geocodeAddress(addrVal.trim());
+      await onUpdate(driver.id, {baseAddress:addrVal.trim(), baseLat:geo.lat, baseLng:geo.lng});
+      setEditingAddr(false);
     } catch(e) { setErr('Adresse non trouvée'); }
     finally { setLoading(false); }
   }
 
+  async function saveStock() {
+    const v = parseFloat(stockVal.replace(',','.'));
+    await onUpdate(driver.id, {stock: isNaN(v) ? null : v});
+    setEditingStock(false);
+  }
+
   return (
-    <div style={{padding:'0 14px 10px',borderBottom:'1px solid var(--border)'}}>
-      {!editing ? (
-        <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <span style={{fontSize:11,color:driver.baseLat?'var(--ok)':'var(--muted)'}}>
-            {driver.baseLat ? `📍 Départ : ${driver.baseAddress}` : '📍 Aucun point de départ'}
-          </span>
-          <button className="btn-sm" onClick={()=>{setVal(driver.baseAddress||'');setEditing(true);}}>
-            {driver.baseLat?'Modifier':'+ Définir'}
-          </button>
-        </div>
-      ) : (
-        <div style={{display:'flex',flexDirection:'column',gap:6}}>
-          <div style={{display:'flex',gap:6}}>
-            <input className="add-inp" style={{fontSize:13}} autoFocus
-              placeholder="Adresse de départ" value={val}
-              onChange={e=>setVal(e.target.value)}
-              onKeyDown={e=>e.key==='Enter'&&save()}/>
-            <button className="btn-add" onClick={save} disabled={loading||!val.trim()}>{loading?'…':'✓'}</button>
-            <button className="btn-sm" onClick={()=>setEditing(false)}>✕</button>
+    <div style={{borderBottom:'1px solid var(--border)'}}>
+      {/* Adresse de départ */}
+      <div style={{padding:'6px 14px 6px'}}>
+        {!editingAddr ? (
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <span style={{fontSize:11,color:driver.baseLat?'var(--ok)':'var(--muted)'}}>
+              {driver.baseLat ? `📍 ${driver.baseAddress}` : '📍 Aucun point de départ'}
+            </span>
+            <button className="btn-sm" onClick={()=>{setAddrVal(driver.baseAddress||'');setEditingAddr(true);}}>
+              {driver.baseLat?'Modifier':'+ Définir'}
+            </button>
           </div>
-          {err && <span style={{fontSize:11,color:'var(--crit)'}}>{err}</span>}
-        </div>
-      )}
+        ) : (
+          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            <div style={{display:'flex',gap:6}}>
+              <input className="add-inp" style={{fontSize:13}} autoFocus
+                placeholder="Adresse de départ" value={addrVal}
+                onChange={e=>setAddrVal(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&saveAddr()}/>
+              <button className="btn-add" onClick={saveAddr} disabled={loading||!addrVal.trim()}>{loading?'…':'✓'}</button>
+              <button className="btn-sm" onClick={()=>setEditingAddr(false)}>✕</button>
+            </div>
+            {err && <span style={{fontSize:11,color:'var(--crit)'}}>{err}</span>}
+          </div>
+        )}
+      </div>
+      {/* Stock de départ */}
+      <div style={{padding:'0 14px 8px'}}>
+        {!editingStock ? (
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <span style={{fontSize:11,color:driver.stock>0?'#FFD60A':'var(--muted)'}}>
+              {driver.stock > 0 ? `💼 Stock : ${fmtEuro(driver.stock)}` : '💼 Aucun stock défini'}
+            </span>
+            <button className="btn-sm" onClick={()=>{setStockVal(driver.stock>0?String(driver.stock):'');setEditingStock(true);}}>
+              {driver.stock>0?'Modifier':'+ Définir'}
+            </button>
+          </div>
+        ) : (
+          <div style={{display:'flex',gap:6,alignItems:'center'}}>
+            <input className="add-inp" style={{fontSize:13,width:120}} autoFocus type="number" inputMode="decimal"
+              placeholder="Ex: 5000" value={stockVal}
+              onChange={e=>setStockVal(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&saveStock()}/>
+            <span style={{color:'#FFD60A',fontWeight:700}}>€</span>
+            <button className="btn-add" onClick={saveStock} disabled={!stockVal.trim()}>✓</button>
+            <button className="btn-sm" onClick={()=>setEditingStock(false)}>✕</button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -736,10 +898,30 @@ function DriverView({ driver, route, done, sp, onDone, onBack }) {
         <div style={{textAlign:'right'}}><div className="dv-clock-lbl">Restantes</div><div>{route.length}</div></div>
       </div>
 
-      {totalDone > 0 && (
-        <div style={{background:'#0a1a0e',border:'1px solid #0f3d25',borderRadius:10,padding:'10px 14px',marginBottom:14,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <span style={{fontSize:11,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase'}}>Encaissé</span>
-          <span style={{fontFamily:'Space Mono,monospace',fontSize:18,fontWeight:700,color:'var(--ok)'}}>{fmtEuro(totalDone)}</span>
+      {/* TABLEAU DE BORD STOCK */}
+      {(driver.stock > 0 || totalDone > 0) && (
+        <div style={{background:'#0a1a0e',border:'1px solid #0f3d25',borderRadius:12,padding:14,marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:10}}>Bilan journée</div>
+          <div style={{display:'flex',gap:8}}>
+            {driver.stock > 0 && (
+              <div style={{flex:1,background:'#061a0e',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
+                <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Stock départ</div>
+                <div style={{fontFamily:'Space Mono,monospace',fontSize:13,fontWeight:700,color:'var(--muted)'}}>{fmtEuro(driver.stock)}</div>
+              </div>
+            )}
+            <div style={{flex:1,background:'#061a0e',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
+              <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Encaissé</div>
+              <div style={{fontFamily:'Space Mono,monospace',fontSize:13,fontWeight:700,color:'var(--ok)'}}>{fmtEuro(totalDone)}</div>
+            </div>
+            {driver.stock > 0 && (
+              <div style={{flex:1,background:'#061a0e',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
+                <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Restant</div>
+                <div style={{fontFamily:'Space Mono,monospace',fontSize:13,fontWeight:700,color: (driver.stock - totalDone) < 0 ? 'var(--crit)' : '#4FC3F7'}}>
+                  {fmtEuro(Math.max(0, driver.stock - totalDone))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -847,23 +1029,9 @@ function DriverView({ driver, route, done, sp, onDone, onBack }) {
           ✓ Déjà livrées
         </div>
         {done.map(o=>(
-          <div className="dv-order done" key={o.id}>
-            <div className="dv-order-top">
-              <div className="dv-n" style={{color:'var(--ok)'}}>✓</div>
-              <div className="dv-body">
-                <div className="dv-client">{o.client}</div>
-                <div className="dv-addr">{o.displayName||o.address}</div>
-                {o.note && <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>📋 {o.note}</div>}
-              </div>
-            </div>
-            <div className="dv-order-footer">
-              <span className="dv-added">Livré — {fmtTime(o.addedAt)}</span>
-              <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                {o.amount!=null && <span style={{fontFamily:'Space Mono,monospace',fontSize:12,color:'var(--ok)',fontWeight:700}}>{fmtEuro(o.amount)}</span>}
-                <span style={{color:'var(--ok)',fontSize:11,fontWeight:700}}>LIVRÉ</span>
-              </div>
-            </div>
-          </div>
+          <DoneOrderRow key={o.id} order={o}
+            onUpdate={(id,patch)=>dbUpd(`orders/${id}`,patch)}
+            onDelete={()=>{}} compact={true}/>
         ))}
       </>}
       <div style={{height:20}}/>
