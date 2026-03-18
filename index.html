@@ -954,9 +954,8 @@ function CustomerView({ order, route, sp }) {
             📋 {order.note}
           </div>
         )}
-        <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid var(--border)',fontSize:11,color:'var(--muted)',display:'flex',justifyContent:'space-between'}}>
+        <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid var(--border)',fontSize:11,color:'var(--muted)'}}>
           <span>Commande reçue à {fmtTime(order.addedAt)}</span>
-          <span>Limite : {fmtTime(order.deadline)}</span>
         </div>
       </div>
 
