@@ -283,9 +283,16 @@ function App() {
     const driver = drivers[driverId];
     const startPos = driver?.baseLat ? { lat: driver.baseLat, lng: driver.baseLng } : null;
     const dOrders = Object.entries(orders)
-      .filter(([,o]) => o.driverId === driverId)
+      .filter(([,o]) => o.driverId === driverId && o.status !== 'done')
       .map(([id,o]) => ({...o, id}));
     return optimizeRoute(dOrders, startPos);
+  }
+
+  function getDoneOrders(driverId) {
+    return Object.entries(orders)
+      .filter(([,o]) => o.driverId === driverId && o.status === 'done')
+      .map(([id,o]) => ({...o, id}))
+      .sort((a,b) => b.addedAt - a.addedAt); // plus récent en premier
   }
 
   if (!fbReady) return (
@@ -303,7 +310,8 @@ function App() {
   if (isDirectLink && currentDriver) return (
     <div className="app">
       <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
-      <DriverView driver={{...currentDriver, id: driverId}} route={getRoute(driverId)}
+      <DriverView driver={{...currentDriver, id: driverId}}
+        route={getRoute(driverId)} doneOrders={getDoneOrders(driverId)}
         onDone={id => updateOrder(id, {status:'done'})} onBack={null} />
       {toast && <Toast msg={toast} onDone={() => setToast('')}/>}
     </div>
@@ -333,7 +341,8 @@ function App() {
         <SelectDriver drivers={drivers} orders={orders} onSelect={id => setScreen(`driver-${id}`)} />
       )}
       {isDriverScreen && currentDriver && (
-        <DriverView driver={{...currentDriver, id: driverId}} route={getRoute(driverId)}
+        <DriverView driver={{...currentDriver, id: driverId}}
+          route={getRoute(driverId)} doneOrders={getDoneOrders(driverId)}
           onDone={id => updateOrder(id, {status:'done'})} onBack={() => setScreen('driver-select')} />
       )}
       {toast && <Toast msg={toast} onDone={() => setToast('')}/>}
@@ -358,12 +367,12 @@ function AdminView({ drivers, orders, getRoute, addDriver, removeDriver, updateD
       addedAt: ts, deadline: ts + DEADLINE_MS,
       status: 'pending', lat: null, lng: null, displayName: null
     };
-    const ref = await addOrder(order);
+    const pushed = await dbPush('orders', order);
+    const newKey = pushed.key;
     setForm({ client:'', address:'', driverId:'', note:'' });
     try {
       const geo = await geocodeAddress(order.address);
-      // find the newly pushed key by matching addedAt
-      const newKey = Object.entries(orders).find(([,o]) => o.addedAt === ts)?.[0];
+      await updateOrder(newKey, { lat: geo.lat, lng: geo.lng, displayName: geo.displayName });
     } catch(e) { setErr(`GPS non trouvé — commande ajoutée quand même`); }
     finally { setLoading(false); }
   }
@@ -469,15 +478,15 @@ function AdminView({ drivers, orders, getRoute, addDriver, removeDriver, updateD
       {/* ROUTES PAR CHAUFFEUR */}
       {Object.entries(drivers).map(([id,d]) => {
         const route = getRoute(id);
-        const done = Object.values(orders).filter(o => o.driverId===id && o.status==='done').length;
+        const doneOrders = getDoneOrders(id);
         return (
           <div className="card" key={id}>
             <div className="route-hdr">
               <div className="dot" style={{background:d.color}}/>
               <span className="route-hdr-name">{d.name}</span>
-              <span className="route-hdr-n">{route.length} à livrer{done>0?` · ${done} ✓`:''}</span>
+              <span className="route-hdr-n">{route.length} à livrer{doneOrders.length>0?` · ${doneOrders.length} ✓`:''}</span>
             </div>
-            {route.length===0 && <div className="empty-txt">Aucune commande assignée</div>}
+            {route.length===0 && doneOrders.length===0 && <div className="empty-txt">Aucune commande assignée</div>}
             {route.map((o,i) => {
               const u = urgencyLevel(o.deadline);
               return (
@@ -502,6 +511,23 @@ function AdminView({ drivers, orders, getRoute, addDriver, removeDriver, updateD
                 </div>
               );
             })}
+            {doneOrders.length > 0 && (
+              <>
+                <div style={{padding:'6px 14px',background:'#0d0d0d',borderTop:'1px solid var(--border)',fontSize:10,color:'var(--muted)',letterSpacing:'1.5px',textTransform:'uppercase',fontWeight:700}}>
+                  ✓ Livrées
+                </div>
+                {doneOrders.map(o => (
+                  <div className="order-row" key={o.id} style={{opacity:.4}}>
+                    <div className="o-num" style={{color:'var(--ok)'}}>✓</div>
+                    <div className="o-body">
+                      <div className="o-client">{o.client}</div>
+                      <div className="o-addr">{o.displayName||o.address}</div>
+                    </div>
+                    <button className="btn-sm btn-del" onClick={() => deleteOrder(o.id)}>✕</button>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         );
       })}
@@ -580,7 +606,7 @@ function SelectDriver({ drivers, orders, onSelect }) {
 }
 
 // ═══ DRIVER VIEW ════════════════════════════════════════════
-function DriverView({ driver, route, onDone, onBack }) {
+function DriverView({ driver, route, doneOrders = [], onDone, onBack }) {
   const [time, setTime] = useState(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
   useEffect(() => {
     const t = setInterval(() => setTime(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})), 30000);
@@ -597,16 +623,20 @@ function DriverView({ driver, route, onDone, onBack }) {
       <div className="dv-clock">
         <div><div className="dv-clock-lbl">Heure</div><div>{time}</div></div>
         <div style={{textAlign:'right'}}>
-          <div className="dv-clock-lbl">Livraisons</div>
-          <div>{route.filter(o=>o.status!=='done').length}</div>
+          <div className="dv-clock-lbl">Restantes</div>
+          <div>{route.length}</div>
         </div>
       </div>
-      {route.length===0 && <div className="empty-txt">Aucune livraison pour le moment 👍</div>}
+      {route.length===0 && doneOrders.length===0 && <div className="empty-txt">Aucune livraison pour le moment 👍</div>}
+      {route.length===0 && doneOrders.length>0 && (
+        <div className="empty-txt" style={{color:'var(--ok)'}}>🎉 Toutes les livraisons sont terminées !</div>
+      )}
+
+      {/* COMMANDES ACTIVES — ordre optimisé */}
       {route.map((o,i) => {
         const u = urgencyLevel(o.deadline);
-        const isDone = o.status==='done';
         return (
-          <div className={`dv-order${isDone?' done':''}`} key={o.id}>
+          <div className="dv-order" key={o.id}>
             <div className="dv-order-top">
               <div className="dv-n">{i+1}</div>
               <div className="dv-body">
@@ -617,21 +647,46 @@ function DriverView({ driver, route, onDone, onBack }) {
                     📋 {o.note}
                   </div>
                 ) : null}
-                {!isDone ? (
-                  <div className="dv-btns">
-                    <a className="dv-maps" href={wazeUrl(o)} target="_blank">🚗 Waze</a>
-                    <button className="dv-done" onClick={() => onDone(o.id)}>✓ Livré</button>
-                  </div>
-                ) : <span style={{color:'var(--ok)',fontWeight:800,fontSize:13}}>✓ LIVRÉ</span>}
+                <div className="dv-btns">
+                  <a className="dv-maps" href={wazeUrl(o)} target="_blank">🚗 Waze</a>
+                  <button className="dv-done" onClick={() => onDone(o.id)}>✓ Livré</button>
+                </div>
               </div>
             </div>
             <div className="dv-order-footer">
               <span className="dv-added">Reçu {fmtTime(o.addedAt)}</span>
-              {!isDone && <span className={`badge b-${u}`}>avant {fmtTime(o.deadline)} · {fmtCountdown(o.deadline)}</span>}
+              <span className={`badge b-${u}`}>avant {fmtTime(o.deadline)} · {fmtCountdown(o.deadline)}</span>
             </div>
           </div>
         );
       })}
+
+      {/* COMMANDES LIVRÉES — en bas, grises */}
+      {doneOrders.length > 0 && (
+        <>
+          <div style={{margin:'16px 0 8px',fontSize:10,color:'var(--muted)',letterSpacing:'2px',textTransform:'uppercase',fontWeight:700,textAlign:'center'}}>
+            ✓ Déjà livrées
+          </div>
+          {doneOrders.map(o => (
+            <div className="dv-order done" key={o.id}>
+              <div className="dv-order-top">
+                <div className="dv-n" style={{color:'var(--ok)'}}>✓</div>
+                <div className="dv-body">
+                  <div className="dv-client">{o.client}</div>
+                  <div className="dv-addr">{o.displayName||o.address}</div>
+                  {o.note ? (
+                    <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>📋 {o.note}</div>
+                  ) : null}
+                </div>
+              </div>
+              <div className="dv-order-footer">
+                <span className="dv-added">Livré — reçu {fmtTime(o.addedAt)}</span>
+                <span style={{color:'var(--ok)',fontSize:11,fontWeight:700}}>LIVRÉ</span>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
       <div style={{height:20}}/>
     </div>
   );
