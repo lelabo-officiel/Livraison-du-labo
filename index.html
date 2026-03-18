@@ -775,18 +775,35 @@ function DriverView({ driver, route, done, sp, onDone, onBack }) {
                       }}>⏱ Saisir heure d'arrivée Waze</button>
                     ) : (
                       <div style={{marginTop:6,background:'#001830',border:'1px solid #003a5a',borderRadius:8,padding:10}}>
-                        <div style={{fontSize:11,color:'#4FC3F7',fontWeight:700,marginBottom:6}}>⏱ Heure Waze (ex: 14h35)</div>
+                        <div style={{fontSize:11,color:'#4FC3F7',fontWeight:700,marginBottom:6}}>⏱ Heure Waze</div>
                         <div style={{display:'flex',gap:6}}>
                           <input
-                            style={{flex:1,background:'var(--s2)',border:'1.5px solid #4FC3F7',color:'var(--text)',borderRadius:7,padding:'7px 10px',fontSize:16,fontFamily:'Space Mono,monospace',outline:'none'}}
-                            placeholder="14:35" value={etaInputVal}
-                            onChange={e=>setEtaInputVal(e.target.value)}
-                            onKeyDown={e=>e.key==='Enter'&&confirmEta(o.id)}
-                            autoFocus inputMode="numeric"/>
-                          <button onClick={()=>confirmEta(o.id)}
-                            style={{background:'#4FC3F7',color:'#000',border:'none',borderRadius:7,padding:'7px 12px',fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>✓</button>
+                            style={{flex:1,background:'var(--s2)',border:'1.5px solid #4FC3F7',color:'var(--text)',borderRadius:7,padding:'7px 10px',fontSize:22,fontFamily:'Space Mono,monospace',fontWeight:700,outline:'none',letterSpacing:4,textAlign:'center'}}
+                            placeholder="11:30" value={etaInputVal}
+                            inputMode="numeric"
+                            maxLength={5}
+                            onChange={e=>{
+                              // Auto-format: insert colon after 2 digits
+                              let raw = e.target.value.replace(/\D/g,'').slice(0,4);
+                              let fmt = raw.length > 2 ? raw.slice(0,2) + ':' + raw.slice(2) : raw;
+                              setEtaInputVal(fmt);
+                            }}
+                            onKeyDown={e=>{
+                              if(e.key==='Enter' && etaInputVal.length===5) confirmEta(o.id);
+                              if(e.key==='Backspace' && etaInputVal.endsWith(':')) {
+                                e.preventDefault();
+                                setEtaInputVal(etaInputVal.slice(0,1));
+                              }
+                            }}
+                            autoFocus/>
+                          <button onClick={()=>{ if(etaInputVal.length===5) confirmEta(o.id); }}
+                            disabled={etaInputVal.length!==5}
+                            style={{background: etaInputVal.length===5 ? '#4FC3F7':'#003a5a',color: etaInputVal.length===5 ?'#000':'#555',border:'none',borderRadius:7,padding:'7px 14px',fontWeight:800,cursor: etaInputVal.length===5 ?'pointer':'not-allowed',fontFamily:'inherit',fontSize:14,transition:'all .15s'}}>✓</button>
                           <button onClick={()=>setEtaOpen(null)}
                             style={{background:'transparent',border:'1px solid var(--border)',color:'var(--muted)',borderRadius:7,padding:'7px 8px',cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+                        </div>
+                        <div style={{fontSize:10,color:'var(--muted)',marginTop:5,textAlign:'center'}}>
+                          {etaInputVal.length < 5 ? `Tape ${5 - etaInputVal.length} chiffre${5-etaInputVal.length>1?'s':''} de plus` : '✓ Prêt à valider'}
                         </div>
                       </div>
                     )}
