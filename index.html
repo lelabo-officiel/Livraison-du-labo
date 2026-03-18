@@ -332,7 +332,7 @@ function App() {
       </header>
 
       {screen === 'admin' && (
-        <AdminView drivers={drivers} orders={orders} getRoute={getRoute}
+        <AdminView drivers={drivers} orders={orders} getRoute={getRoute} getDoneOrders={getDoneOrders}
           addDriver={addDriver} removeDriver={removeDriver} updateDriver={updateDriver}
           addOrder={addOrder} updateOrder={updateOrder} deleteOrder={deleteOrder}
           onToast={showToast} />
@@ -351,7 +351,7 @@ function App() {
 }
 
 // ═══ ADMIN VIEW ═════════════════════════════════════════════
-function AdminView({ drivers, orders, getRoute, addDriver, removeDriver, updateDriver, addOrder, updateOrder, deleteOrder, onToast }) {
+function AdminView({ drivers, orders, getRoute, getDoneOrders, addDriver, removeDriver, updateDriver, addOrder, updateOrder, deleteOrder, onToast }) {
   const [newName, setNewName] = useState('');
   const [form, setForm] = useState({ client:'', address:'', driverId:'', note:'' });
   const [loading, setLoading] = useState(false);
