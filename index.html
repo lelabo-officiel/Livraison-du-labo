@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Livraison</title>
+
+<!-- ══ FIREBASE ══════════════════════════════════════════ -->
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, set, push, onValue, update, remove }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  // ┌─────────────────────────────────────────────────────┐
+  // │  COLLE TA CONFIG FIREBASE ICI (étape 2 du guide)    │
+  // └─────────────────────────────────────────────────────┘
+  const firebaseConfig = {
+    apiKey:            "AIzaSyBxVLrwAU42buR1iFZ7a_v9ERKfEfaVLsI",
+    authDomain:        "livraison-labo.firebaseapp.com",
+    databaseURL:       "https://livraison-labo-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId:         "livraison-labo",
+    storageBucket:     "livraison-labo.firebasestorage.app",
+    messagingSenderId: "531263927057",
+    appId:             "1:531263927057:web:e5530cf0f34f642318d2b0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+  window._db      = db;
+  window._dbRef   = ref;
+  window._dbSet   = set;
+  window._dbPush  = push;
+  window._dbOn    = onValue;
+  window._dbUpd   = update;
+  window._dbRem   = remove;
+  window._firebaseReady = true;
+  window.dispatchEvent(new Event('firebaseReady'));
+</script>
+
+<!-- ══ REACT + BABEL ═════════════════════════════════════ -->
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0A0A0A;--s1:#111;--s2:#1A1A1A;--border:#252525;
+  --accent:#FF6B00;--text:#EFEFEF;--muted:#555;
+  --ok:#06D6A0;--warn:#FFD60A;--crit:#FF4D6D;
+}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;-webkit-font-smoothing:antialiased}
+.app{min-height:100vh;max-width:480px;margin:0 auto}
+.hdr{position:sticky;top:0;z-index:200;background:var(--s1);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:10px}
+.hdr-logo{font-size:17px;font-weight:800;flex:1;letter-spacing:-.3px}
+.hdr-logo em{color:var(--accent);font-style:normal}
+.tab{padding:6px 12px;border-radius:20px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--muted)}
+.tab.on{background:var(--accent);color:#fff}
+.content{padding:14px;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.card-pad{padding:14px}
+.sec-label{font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.inp{width:100%;background:var(--s2);border:1.5px solid var(--border);color:var(--text);border-radius:10px;padding:11px 13px;font-size:15px;font-family:inherit;outline:none;transition:border-color .15s}
+.inp:focus{border-color:var(--accent)}
+.inp::placeholder{color:var(--muted)}
+select.inp option{background:#1a1a1a}
+.fld{margin-bottom:10px}
+.fld-lbl{display:block;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.btn-main{width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:13px;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;transition:transform .1s}
+.btn-main:active{transform:scale(.98)}
+.btn-main:disabled{opacity:.3;cursor:not-allowed;transform:none}
+.btn-sm{background:var(--s2);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 9px;font-family:'Space Mono',monospace;font-size:10px;cursor:pointer;transition:all .1s}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+.btn-del{color:var(--crit)}
+.btn-del:hover{border-color:var(--crit)}
+.geocoding-row{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px;color:var(--muted)}
+.spin{width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err{color:var(--crit);font-size:12px;padding:4px 0}
+.driver-row{display:flex;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);gap:10px}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.driver-row-name{flex:1;font-weight:600;font-size:14px}
+.driver-row-n{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);margin-right:6px}
+.add-row{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--border)}
+.add-inp{flex:1;background:var(--s2);border:1.5px solid var(--border);color:var(--text);border-radius:8px;padding:8px 11px;font-size:14px;font-family:inherit;outline:none}
+.add-inp:focus{border-color:var(--accent)}
+.btn-add{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.route-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s2);border-bottom:1px solid var(--border)}
+.route-hdr-name{flex:1;font-weight:700;font-size:14px}
+.route-hdr-n{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)}
+.order-row{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}
+.order-row:last-child{border-bottom:none}
+.o-num{font-family:'Space Mono',monospace;font-size:16px;font-weight:700;color:var(--accent);min-width:20px;padding-top:2px}
+.o-body{flex:1;min-width:0}
+.o-client{font-weight:700;font-size:14px;margin-bottom:1px}
+.o-addr{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}
+.o-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.o-time{font-size:10px;color:var(--muted)}
+.badge{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px}
+.b-ok{background:#0b2a1e;color:var(--ok)}
+.b-warn{background:#2a240b;color:var(--warn)}
+.b-critical{background:#2a0b12;color:var(--crit)}
+.b-late{background:var(--crit);color:#fff;animation:blink 1s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.o-actions{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+.unassigned-row{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border)}
+.unassigned-row:last-child{border-bottom:none}
+.u-info{flex:1;min-width:0}
+.u-client{font-weight:600;font-size:13px}
+.u-addr{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dv-wrap{padding:14px}
+.dv-hdr{margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.dv-hdr-name{font-size:22px;font-weight:800;flex:1}
+.dv-back{background:var(--s2);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.dv-clock{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.dv-clock-lbl{font-family:'Syne',sans-serif;font-size:10px;font-weight:600;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+.dv-order{background:var(--s1);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;overflow:hidden;transition:opacity .3s}
+.dv-order.done{opacity:.35}
+.dv-order-top{display:flex;align-items:flex-start;gap:12px;padding:13px}
+.dv-n{font-family:'Space Mono',monospace;font-size:24px;font-weight:700;color:var(--accent);min-width:30px}
+.dv-body{flex:1}
+.dv-client{font-size:17px;font-weight:700;margin-bottom:3px}
+.dv-addr{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:10px}
+.dv-btns{display:flex;gap:8px}
+.dv-maps{display:inline-flex;align-items:center;gap:6px;background:#001e30;color:#4FC3F7;border:1px solid #003a5a;border-radius:8px;padding:9px 14px;font-weight:800;font-size:13px;text-decoration:none;flex:1;justify-content:center}
+.dv-done{background:#0a2a1a;color:var(--ok);border:1px solid #0f3d25;border-radius:8px;padding:9px 14px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;flex:1}
+.dv-order-footer{background:var(--s2);border-top:1px solid var(--border);padding:8px 13px;display:flex;align-items:center;justify-content:space-between}
+.dv-added{font-size:10px;color:var(--muted)}
+.sel-wrap{padding:20px 14px;min-height:60vh;display:flex;flex-direction:column;justify-content:center}
+.sel-title{font-size:22px;font-weight:800;margin-bottom:4px}
+.sel-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+.driver-sel-btn{width:100%;background:var(--s1);border:2px solid var(--border);border-radius:14px;padding:14px 16px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:border-color .15s}
+.driver-sel-btn:hover,.driver-sel-btn:active{border-color:var(--accent)}
+.driver-sel-name{font-size:16px;font-weight:700;color:var(--text);display:block}
+.driver-sel-count{font-size:11px;color:var(--muted);display:block;margin-top:2px;font-family:'Space Mono',monospace}
+.empty-txt{padding:20px 14px;text-align:center;color:var(--muted);font-size:13px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid var(--ok);color:var(--ok);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:999;animation:fadeup .3s ease}
+@keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.config-box{background:#1a0800;border:2px solid var(--accent);border-radius:14px;padding:16px;margin:14px}
+.config-box h2{font-size:16px;font-weight:800;margin-bottom:8px}
+.config-box p{font-size:12px;color:var(--muted);line-height:1.6}
+</style>
+
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// ═══ PALETTE & CONSTANTES ═══════════════════════════════════
+const PALETTE = ['#FF6B00','#00C4FF','#06D6A0','#FFD60A','#C77DFF','#FF4D6D'];
+const DEADLINE_MS = 3 * 60 * 60 * 1000;
+
+// ═══ UTILS ══════════════════════════════════════════════════
+function haversine(a, b) {
+  if (!a?.lat || !b?.lat) return Infinity;
+  const R = 6371, toR = x => x * Math.PI / 180;
+  const dLat = toR(b.lat - a.lat), dLng = toR(b.lng - a.lng);
+  const aa = Math.sin(dLat/2)**2 + Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1-aa));
+}
+
+function optimizeRoute(orders, startPos = null) {
+  const ready = orders.filter(o => o.status !== 'done');
+  if (ready.length <= 1) return ready;
+  const now = Date.now();
+  let rem = [...ready], route = [], pos = startPos;
+  while (rem.length) {
+    const urgent = rem.filter(o => o.deadline - now < 80*60000).sort((a,b) => a.deadline - b.deadline);
+    const pool = urgent.length ? urgent : rem.slice().sort((a,b) => a.deadline - b.deadline);
+    let pick;
+    if (pos && pool.length > 1) {
+      const win = pool.filter(o => o.deadline - pool[0].deadline < 25*60000);
+      pick = win.reduce((best, o) => haversine(pos, o) < haversine(pos, best) ? o : best);
+    } else pick = pool[0];
+    route.push(pick); pos = pick; rem = rem.filter(o => o.id !== pick.id);
+  }
+  return route;
+}
+
+async function geocodeAddress(address) {
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
+    { headers: {'Accept-Language':'fr-FR','User-Agent':'LivraisonApp/1.0'} });
+  const data = await res.json();
+  if (!data.length) throw new Error('Adresse non trouvée');
+  return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), displayName: data[0].display_name };
+}
+
+const fmtTime = ts => new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+const fmtCountdown = deadline => {
+  const d = deadline - Date.now();
+  if (d <= 0) return 'EN RETARD';
+  const h = Math.floor(d/3600000), m = Math.floor((d%3600000)/60000);
+  return h > 0 ? `${h}h${String(m).padStart(2,'0')}` : `${m}min`;
+};
+const urgencyLevel = deadline => {
+  const d = deadline - Date.now();
+  if (d <= 0) return 'late'; if (d < 45*60000) return 'critical';
+  if (d < 90*60000) return 'warn'; return 'ok';
+};
+const wazeUrl = o => o.lat && o.lng
+  ? `https://waze.com/ul?ll=${o.lat},${o.lng}&navigate=yes`
+  : `https://waze.com/ul?q=${encodeURIComponent(o.address)}&navigate=yes`;
+
+// ═══ FIREBASE HELPERS ═══════════════════════════════════════
+function dbRef(path) { return window._dbRef(window._db, path); }
+function dbSet(path, val) { return window._dbSet(dbRef(path), val); }
+function dbUpd(path, val) { return window._dbUpd(dbRef(path), val); }
+function dbPush(path, val) { return window._dbPush(dbRef(path), val); }
+function dbRem(path) { return window._dbRem(dbRef(path)); }
+function dbOn(path, cb) { return window._dbOn(dbRef(path), snap => cb(snap.val())); }
+
+// ═══ TOAST ══════════════════════════════════════════════════
+function Toast({ msg, onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 2000); return () => clearTimeout(t); }, []);
+  return <div className="toast">{msg}</div>;
+}
+
+// ═══ APP ════════════════════════════════════════════════════
+function App() {
+  const [fbReady, setFbReady] = useState(!!window._firebaseReady);
+  const [fbConfigured, setFbConfigured] = useState(true);
+  const [drivers, setDrivers] = useState({});
+  const [orders, setOrders]   = useState({});
+  const [screen, setScreen]   = useState(() => {
+    const h = window.location.hash;
+    return h.startsWith('#driver-') ? h.slice(1) : 'admin';
+  });
+  const [toast, setToast] = useState('');
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!fbReady) { window.addEventListener('firebaseReady', () => setFbReady(true)); }
+  }, []);
+
+  useEffect(() => { const t = setInterval(() => setTick(n=>n+1), 30000); return () => clearInterval(t); }, []);
+
+  useEffect(() => {
+    if (!fbReady) return;
+    // Test if config is placeholder
+    try {
+      const unsub1 = dbOn('drivers', v => setDrivers(v || {}));
+      const unsub2 = dbOn('orders',  v => setOrders(v  || {}));
+      setFbConfigured(true);
+    } catch(e) { setFbConfigured(false); }
+  }, [fbReady]);
+
+  useEffect(() => {
+    if (screen.startsWith('driver-')) window.location.hash = screen;
+    else history.replaceState(null,'',window.location.pathname);
+  }, [screen]);
+
+  const showToast = msg => { setToast(msg); };
+
+  // ── Drivers ──────────────────────────────────────────────
+  async function addDriver(name) {
+    if (!name.trim()) return;
+    const color = PALETTE[Object.keys(drivers).length % PALETTE.length];
+    await dbPush('drivers', { name: name.trim(), color });
+  }
+  async function removeDriver(id) {
+    await dbRem(`drivers/${id}`);
+    Object.entries(orders).forEach(([oid, o]) => {
+      if (o.driverId === id) dbUpd(`orders/${oid}`, { driverId: null });
+    });
+  }
+  async function updateDriver(id, patch) { await dbUpd(`drivers/${id}`, patch); }
+
+  // ── Orders ───────────────────────────────────────────────
+  async function addOrder(order) { await dbPush('orders', order); }
+  async function updateOrder(id, patch) { await dbUpd(`orders/${id}`, patch); }
+  async function deleteOrder(id) { await dbRem(`orders/${id}`); }
+
+  // ── Route ────────────────────────────────────────────────
+  function getRoute(driverId) {
+    const driver = drivers[driverId];
+    const startPos = driver?.baseLat ? { lat: driver.baseLat, lng: driver.baseLng } : null;
+    const dOrders = Object.entries(orders)
+      .filter(([,o]) => o.driverId === driverId)
+      .map(([id,o]) => ({...o, id}));
+    return optimizeRoute(dOrders, startPos);
+  }
+
+  if (!fbReady) return (
+    <div className="app"><div className="empty-txt" style={{marginTop:60}}>
+      <div className="spin" style={{width:24,height:24,margin:'0 auto 12px'}}/> Connexion à Firebase…
+    </div></div>
+  );
+
+  const isDriverScreen = screen.startsWith('driver-');
+  const driverId = isDriverScreen ? screen.replace('driver-','') : null;
+  const currentDriver = driverId ? drivers[driverId] : null;
+  const isDirectLink = isDriverScreen && !!window.location.hash;
+
+  // Vue chauffeur directe (lien envoyé)
+  if (isDirectLink && currentDriver) return (
+    <div className="app">
+      <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
+      <DriverView driver={{...currentDriver, id: driverId}} route={getRoute(driverId)}
+        onDone={id => updateOrder(id, {status:'done'})} onBack={null} />
+      {toast && <Toast msg={toast} onDone={() => setToast('')}/>}
+    </div>
+  );
+
+  return (
+    <div className="app">
+      <header className="hdr">
+        <span className="hdr-logo">LIVR<em>AI</em>SON</span>
+        {isDriverScreen ? (
+          <button className="tab on" onClick={() => setScreen('driver-select')}>← Retour</button>
+        ) : (
+          <>
+            <button className={`tab ${screen==='admin'?'on':''}`} onClick={() => setScreen('admin')}>Admin</button>
+            <button className={`tab ${screen!=='admin'?'on':''}`} onClick={() => setScreen('driver-select')}>Chauffeur</button>
+          </>
+        )}
+      </header>
+
+      {screen === 'admin' && (
+        <AdminView drivers={drivers} orders={orders} getRoute={getRoute}
+          addDriver={addDriver} removeDriver={removeDriver} updateDriver={updateDriver}
+          addOrder={addOrder} updateOrder={updateOrder} deleteOrder={deleteOrder}
+          onToast={showToast} />
+      )}
+      {screen === 'driver-select' && (
+        <SelectDriver drivers={drivers} orders={orders} onSelect={id => setScreen(`driver-${id}`)} />
+      )}
+      {isDriverScreen && currentDriver && (
+        <DriverView driver={{...currentDriver, id: driverId}} route={getRoute(driverId)}
+          onDone={id => updateOrder(id, {status:'done'})} onBack={() => setScreen('driver-select')} />
+      )}
+      {toast && <Toast msg={toast} onDone={() => setToast('')}/>}
+    </div>
+  );
+}
+
+// ═══ ADMIN VIEW ═════════════════════════════════════════════
+function AdminView({ drivers, orders, getRoute, addDriver, removeDriver, updateDriver, addOrder, updateOrder, deleteOrder, onToast }) {
+  const [newName, setNewName] = useState('');
+  const [form, setForm] = useState({ client:'', address:'', driverId:'', note:'' });
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function handleAdd() {
+    if (!form.client.trim() || !form.address.trim()) return;
+    setLoading(true); setErr('');
+    const ts = Date.now();
+    const order = {
+      client: form.client.trim(), address: form.address.trim(),
+      note: form.note.trim(), driverId: form.driverId || null,
+      addedAt: ts, deadline: ts + DEADLINE_MS,
+      status: 'pending', lat: null, lng: null, displayName: null
+    };
+    const ref = await addOrder(order);
+    setForm({ client:'', address:'', driverId:'', note:'' });
+    try {
+      const geo = await geocodeAddress(order.address);
+      // find the newly pushed key by matching addedAt
+      const newKey = Object.entries(orders).find(([,o]) => o.addedAt === ts)?.[0];
+    } catch(e) { setErr(`GPS non trouvé — commande ajoutée quand même`); }
+    finally { setLoading(false); }
+  }
+
+  const unassigned = Object.entries(orders).filter(([,o]) => !o.driverId && o.status !== 'done');
+
+  return (
+    <div className="content">
+      {/* NOUVELLE COMMANDE */}
+      <div className="card">
+        <div className="card-pad">
+          <div className="sec-label">Nouvelle commande</div>
+          <div className="fld">
+            <label className="fld-lbl">Nom du client</label>
+            <input className="inp" placeholder="Ex : Mohammed D." value={form.client}
+              onChange={e => setForm(f=>({...f, client:e.target.value}))} />
+          </div>
+          <div className="fld">
+            <label className="fld-lbl">Adresse de livraison</label>
+            <input className="inp" placeholder="Ex : 14 rue de la Paix, Lyon" value={form.address}
+              onChange={e => setForm(f=>({...f, address:e.target.value}))}
+              onKeyDown={e => e.key==='Enter' && handleAdd()} />
+          </div>
+          <div className="fld">
+            <label className="fld-lbl">Chauffeur</label>
+            <select className="inp" value={form.driverId} onChange={e => setForm(f=>({...f, driverId:e.target.value}))}>
+              <option value="">— Non assigné</option>
+              {Object.entries(drivers).map(([id,d]) => <option key={id} value={id}>{d.name}</option>)}
+            </select>
+          </div>
+          <div className="fld">
+            <label className="fld-lbl">Message pour le livreur</label>
+            <textarea className="inp" rows={3} value={form.note}
+              placeholder="Ex : 2x burger, 1x frites — 24€ — code: 1492"
+              onChange={e => setForm(f=>({...f, note:e.target.value}))}
+              style={{resize:'none',lineHeight:'1.5'}}/>
+          </div>
+          {loading && <div className="geocoding-row"><span className="spin"/> Localisation GPS…</div>}
+          {err && <div className="err">⚠ {err}</div>}
+          <button className="btn-main" onClick={handleAdd} disabled={!form.client.trim()||!form.address.trim()||loading}>
+            + Ajouter la commande
+          </button>
+        </div>
+      </div>
+
+      {/* CHAUFFEURS */}
+      <div className="card">
+        <div className="card-pad" style={{paddingBottom:0}}>
+          <div className="sec-label">Chauffeurs ({Object.keys(drivers).length})</div>
+        </div>
+        {Object.keys(drivers).length === 0 && <div className="empty-txt">Aucun chauffeur</div>}
+        {Object.entries(drivers).map(([id,d]) => {
+          const n = Object.values(orders).filter(o => o.driverId===id && o.status!=='done').length;
+          const link = `${window.location.href.split('#')[0]}#driver-${id}`;
+          return (
+            <div key={id}>
+              <div className="driver-row">
+                <div className="dot" style={{background:d.color}}/>
+                <span className="driver-row-name">{d.name}</span>
+                <span className="driver-row-n">{n} cmd</span>
+                <button className="btn-sm" style={{color:'#06D6A0'}} onClick={() => {
+                  navigator.clipboard.writeText(link);
+                  onToast('🔗 Lien copié !');
+                }}>🔗 Lien</button>
+                <button className="btn-sm btn-del" onClick={() => removeDriver(id)}>✕</button>
+              </div>
+              <DriverBaseRow driver={{...d, id}} onUpdate={updateDriver} />
+            </div>
+          );
+        })}
+        <div className="add-row">
+          <input className="add-inp" placeholder="Prénom du chauffeur" value={newName}
+            onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => { if(e.key==='Enter'&&newName.trim()){addDriver(newName);setNewName('');} }} />
+          <button className="btn-add" onClick={() => { if(newName.trim()){addDriver(newName);setNewName('');} }}>+ Ajouter</button>
+        </div>
+      </div>
+
+      {/* NON ASSIGNÉES */}
+      {unassigned.length > 0 && (
+        <div className="card">
+          <div className="card-pad" style={{paddingBottom:0}}>
+            <div className="sec-label">⚠ Non assignées ({unassigned.length})</div>
+          </div>
+          {unassigned.map(([id,o]) => (
+            <div className="unassigned-row" key={id}>
+              <div className="u-info">
+                <div className="u-client">{o.client}</div>
+                <div className="u-addr">{o.address}</div>
+              </div>
+              <div style={{display:'flex',gap:6}}>
+                <select className="btn-sm" style={{color:'var(--accent)'}} value="" onChange={e => { if(e.target.value) updateOrder(id,{driverId:e.target.value}); }}>
+                  <option value="">Assigner →</option>
+                  {Object.entries(drivers).map(([did,d]) => <option key={did} value={did}>{d.name}</option>)}
+                </select>
+                <button className="btn-sm btn-del" onClick={() => deleteOrder(id)}>✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ROUTES PAR CHAUFFEUR */}
+      {Object.entries(drivers).map(([id,d]) => {
+        const route = getRoute(id);
+        const done = Object.values(orders).filter(o => o.driverId===id && o.status==='done').length;
+        return (
+          <div className="card" key={id}>
+            <div className="route-hdr">
+              <div className="dot" style={{background:d.color}}/>
+              <span className="route-hdr-name">{d.name}</span>
+              <span className="route-hdr-n">{route.length} à livrer{done>0?` · ${done} ✓`:''}</span>
+            </div>
+            {route.length===0 && <div className="empty-txt">Aucune commande assignée</div>}
+            {route.map((o,i) => {
+              const u = urgencyLevel(o.deadline);
+              return (
+                <div className="order-row" key={o.id}>
+                  <div className="o-num">{i+1}</div>
+                  <div className="o-body">
+                    <div className="o-client">{o.client}</div>
+                    <div className="o-addr">{o.displayName||o.address}</div>
+                    <div className="o-meta">
+                      <span className="o-time">↓ {fmtTime(o.addedAt)}</span>
+                      <span className={`badge b-${u}`}>{fmtCountdown(o.deadline)} · {fmtTime(o.deadline)}</span>
+                    </div>
+                  </div>
+                  <div className="o-actions">
+                    <a className="btn-sm" href={wazeUrl(o)} target="_blank" style={{color:'#4FC3F7',textDecoration:'none'}}>Waze</a>
+                    <select className="btn-sm" value={id} onChange={e => updateOrder(o.id,{driverId:e.target.value||null})} style={{fontSize:'9px'}}>
+                      {Object.entries(drivers).map(([did,dr]) => <option key={did} value={did}>{dr.name}</option>)}
+                      <option value="">Non assigné</option>
+                    </select>
+                    <button className="btn-sm btn-del" onClick={() => deleteOrder(o.id)}>✕</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+      <div style={{height:20}}/>
+    </div>
+  );
+}
+
+// ═══ DRIVER BASE ROW ════════════════════════════════════════
+function DriverBaseRow({ driver, onUpdate }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(driver.baseAddress || '');
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function save() {
+    if (!val.trim()) return;
+    setLoading(true); setErr('');
+    try {
+      const geo = await geocodeAddress(val.trim());
+      await onUpdate(driver.id, { baseAddress:val.trim(), baseLat:geo.lat, baseLng:geo.lng });
+      setEditing(false);
+    } catch(e) { setErr('Adresse non trouvée'); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div style={{padding:'0 14px 10px',borderBottom:'1px solid var(--border)'}}>
+      {!editing ? (
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <span style={{fontSize:11,color:driver.baseLat?'var(--ok)':'var(--muted)'}}>
+            {driver.baseLat ? `📍 Départ : ${driver.baseAddress}` : '📍 Aucun point de départ'}
+          </span>
+          <button className="btn-sm" onClick={() => { setVal(driver.baseAddress||''); setEditing(true); }}>
+            {driver.baseLat ? 'Modifier' : '+ Définir'}
+          </button>
+        </div>
+      ) : (
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          <div style={{display:'flex',gap:6}}>
+            <input className="add-inp" style={{fontSize:13}} autoFocus
+              placeholder="Adresse de départ" value={val}
+              onChange={e => setVal(e.target.value)}
+              onKeyDown={e => e.key==='Enter' && save()} />
+            <button className="btn-add" onClick={save} disabled={loading||!val.trim()}>{loading?'…':'✓'}</button>
+            <button className="btn-sm" onClick={() => setEditing(false)}>✕</button>
+          </div>
+          {err && <span style={{fontSize:11,color:'var(--crit)'}}>{err}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══ SELECT DRIVER ══════════════════════════════════════════
+function SelectDriver({ drivers, orders, onSelect }) {
+  return (
+    <div className="sel-wrap">
+      <div className="sel-title">Qui es-tu ?</div>
+      <div className="sel-sub">Sélectionne ton nom pour voir ta route</div>
+      {Object.keys(drivers).length===0 && <div className="empty-txt">Aucun chauffeur configuré</div>}
+      {Object.entries(drivers).map(([id,d]) => {
+        const n = Object.values(orders).filter(o => o.driverId===id && o.status!=='done').length;
+        return (
+          <button className="driver-sel-btn" key={id} onClick={() => onSelect(id)}>
+            <div className="dot" style={{background:d.color,width:14,height:14}}/>
+            <div>
+              <span className="driver-sel-name">{d.name}</span>
+              <span className="driver-sel-count">{n} livraison{n!==1?'s':''} en attente</span>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ═══ DRIVER VIEW ════════════════════════════════════════════
+function DriverView({ driver, route, onDone, onBack }) {
+  const [time, setTime] = useState(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div className="dv-wrap">
+      <div className="dv-hdr">
+        <div className="dot" style={{background:driver.color,width:12,height:12}}/>
+        <span className="dv-hdr-name">{driver.name}</span>
+        {onBack && <button className="dv-back" onClick={onBack}>← Changer</button>}
+      </div>
+      <div className="dv-clock">
+        <div><div className="dv-clock-lbl">Heure</div><div>{time}</div></div>
+        <div style={{textAlign:'right'}}>
+          <div className="dv-clock-lbl">Livraisons</div>
+          <div>{route.filter(o=>o.status!=='done').length}</div>
+        </div>
+      </div>
+      {route.length===0 && <div className="empty-txt">Aucune livraison pour le moment 👍</div>}
+      {route.map((o,i) => {
+        const u = urgencyLevel(o.deadline);
+        const isDone = o.status==='done';
+        return (
+          <div className={`dv-order${isDone?' done':''}`} key={o.id}>
+            <div className="dv-order-top">
+              <div className="dv-n">{i+1}</div>
+              <div className="dv-body">
+                <div className="dv-client">{o.client}</div>
+                <div className="dv-addr">{o.displayName||o.address}</div>
+                {o.note ? (
+                  <div style={{background:'#1a1400',border:'1px solid #3a2e00',borderRadius:8,padding:'8px 10px',marginBottom:10,fontSize:13,color:'#FFD60A',lineHeight:'1.6',whiteSpace:'pre-wrap'}}>
+                    📋 {o.note}
+                  </div>
+                ) : null}
+                {!isDone ? (
+                  <div className="dv-btns">
+                    <a className="dv-maps" href={wazeUrl(o)} target="_blank">🚗 Waze</a>
+                    <button className="dv-done" onClick={() => onDone(o.id)}>✓ Livré</button>
+                  </div>
+                ) : <span style={{color:'var(--ok)',fontWeight:800,fontSize:13}}>✓ LIVRÉ</span>}
+              </div>
+            </div>
+            <div className="dv-order-footer">
+              <span className="dv-added">Reçu {fmtTime(o.addedAt)}</span>
+              {!isDone && <span className={`badge b-${u}`}>avant {fmtTime(o.deadline)} · {fmtCountdown(o.deadline)}</span>}
+            </div>
+          </div>
+        );
+      })}
+      <div style={{height:20}}/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+</body>
+</html>
