@@ -293,6 +293,7 @@ function App() {
   const [fbReady,  setFbReady]  = useState(!!window._firebaseReady);
   const [drivers,  setDrivers]  = useState({});
   const [orders,   setOrders]   = useState({});
+  const [gpsPos,   setGpsPos]   = useState(null); // GPS en direct du livreur
   const [screen,   setScreen]   = useState(() => {
     const h = window.location.hash;
     if (h.startsWith('#driver-')) return h.slice(1);
@@ -330,7 +331,17 @@ function App() {
 
   function startPos(did) {
     const d = drivers[did];
-    return d?.baseLat ? {lat:d.baseLat, lng:d.baseLng} : null;
+    // 1. GPS en direct (le plus précis — si le livreur l'a activé)
+    if (gpsPos) return gpsPos;
+    // 2. Dernière adresse livrée (le livreur est là-bas)
+    const doneForDriver = Object.values(orders)
+      .filter(o => o.driverId === did && o.status === 'done' && o.lat && o.lng)
+      .sort((a,b) => (b.deliveredAt||b.addedAt) - (a.deliveredAt||a.addedAt));
+    if (doneForDriver.length > 0) {
+      return { lat: doneForDriver[0].lat, lng: doneForDriver[0].lng };
+    }
+    // 3. Point de départ initial (aucune livraison faite)
+    return d?.baseLat ? {lat: d.baseLat, lng: d.baseLng} : null;
   }
   function getRoute(did) {
     return optimizeRoute(
@@ -382,7 +393,10 @@ function App() {
     <div className="app">
       <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
       <DriverView driver={{...curDriver,id:driverId}} route={getRoute(driverId)} done={getDone(driverId)}
-        sp={startPos(driverId)} onDone={(id,amt)=>updateOrder(id,{status:'done',amount:amt??null})} onBack={null}/>
+        sp={startPos(driverId)}
+        onDone={(id,amt)=>updateOrder(id,{status:'done',amount:amt??null,deliveredAt:Date.now()})}
+        onGpsUpdate={pos=>setGpsPos(pos)}
+        onBack={null}/>
       {toast && <Toast msg={toast} onDone={()=>setToast('')}/>}
     </div>
   );
@@ -395,7 +409,8 @@ function App() {
           ? <button className="tab on" onClick={()=>setScreen('driver-select')}>← Retour</button>
           : <>
               <button className={`tab ${screen==='admin'?'on':''}`} onClick={()=>setScreen('admin')}>Admin</button>
-              <button className={`tab ${screen!=='admin'?'on':''}`} onClick={()=>setScreen('driver-select')}>Chauffeur</button>
+              <button className={`tab ${screen==='history'?'on':''}`} onClick={()=>setScreen('history')}>📋</button>
+              <button className={`tab ${screen!=='admin'&&screen!=='history'?'on':''}`} onClick={()=>setScreen('driver-select')}>Chauffeur</button>
             </>
         }
       </header>
@@ -405,15 +420,23 @@ function App() {
           getRoute={getRoute} getDone={getDone} startPos={startPos}
           addDriver={addDriver} removeDriver={removeDriver} updateDriver={updateDriver}
           updateOrder={updateOrder} deleteOrder={deleteOrder}
-          resetAll={async()=>{ for(const id of Object.keys(orders)) await dbRem(`orders/${id}`); }}
+          resetAll={async()=>{
+            // Sauvegarde historique avant reset
+            const date = new Date().toLocaleDateString('fr-FR');
+            const snap = { date, savedAt: Date.now(), orders: Object.values(orders) };
+            await dbPush('history', snap);
+            for(const id of Object.keys(orders)) await dbRem(`orders/${id}`);
+          }}
           onToast={setToast}/>
       )}
-      {screen==='driver-select' && (
+      {screen==='history' && <HistoryView/>}
         <SelectDriver drivers={drivers} orders={orders} onSelect={id=>setScreen(`driver-${id}`)}/>
       )}
       {isDriverScreen && curDriver && (
         <DriverView driver={{...curDriver,id:driverId}} route={getRoute(driverId)} done={getDone(driverId)}
-          sp={startPos(driverId)} onDone={(id,amt)=>updateOrder(id,{status:'done',amount:amt??null})}
+          sp={startPos(driverId)}
+          onDone={(id,amt)=>updateOrder(id,{status:'done',amount:amt??null,deliveredAt:Date.now()})}
+          onGpsUpdate={pos=>setGpsPos(pos)}
           onBack={()=>setScreen('driver-select')}/>
       )}
       {toast && <Toast msg={toast} onDone={()=>setToast('')}/>}
@@ -858,24 +881,67 @@ function SelectDriver({ drivers, orders, onSelect }) {
 // ══════════════════════════════════════════════════════════
 // DRIVER VIEW
 // ══════════════════════════════════════════════════════════
-function DriverView({ driver, route, done, sp, onDone, onBack }) {
+function DriverView({ driver, route, done, sp, onDone, onBack, onGpsUpdate }) {
+  const { useRef } = React;
   const [time, setTime] = useState(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
   const [pendingId, setPending] = useState(null);
   const [amtVal, setAmtVal]     = useState('');
-  // ETA Waze
   const [etaOpenId, setEtaOpen] = useState(null);
   const [etaInputVal, setEtaInputVal] = useState('');
+  const [gpsActive, setGpsActive] = useState(false);
+  const [gpsErr, setGpsErr]       = useState('');
+  const watchId = useRef(null);
+  const prevRouteLen = useRef(route.length);
   const etas = useETAs(route, sp);
 
+  // Horloge
   useEffect(()=>{
     const t = setInterval(()=>setTime(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})),30000);
     return ()=>clearInterval(t);
   },[]);
 
+  // Notifications — demande permission au chargement
+  useEffect(()=>{
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  },[]);
+
+  // Notification quand nouvelle commande assignée
+  useEffect(()=>{
+    if (route.length > prevRouteLen.current) {
+      const newest = route[route.length - 1];
+      if (newest && Notification.permission === 'granted') {
+        new Notification('🛵 Nouvelle livraison !', {
+          body: `${newest.client} — ${newest.address}`,
+          icon: '/favicon.ico'
+        });
+      }
+    }
+    prevRouteLen.current = route.length;
+  },[route.length]);
+
+  // GPS — activer/désactiver
+  function toggleGps() {
+    if (gpsActive) {
+      if (watchId.current) navigator.geolocation.clearWatch(watchId.current);
+      setGpsActive(false); setGpsErr('');
+      onGpsUpdate(null);
+    } else {
+      if (!navigator.geolocation) { setGpsErr('GPS non disponible sur cet appareil'); return; }
+      setGpsErr('');
+      watchId.current = navigator.geolocation.watchPosition(
+        pos => { onGpsUpdate({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setGpsActive(true); },
+        err => { setGpsErr('Localisation refusée ou indisponible'); setGpsActive(false); },
+        { enableHighAccuracy: true, maximumAge: 15000 }
+      );
+    }
+  }
+  useEffect(() => () => { if (watchId.current) navigator.geolocation.clearWatch(watchId.current); }, []);
+
   function handleLivre(id) { setPending(id); setAmtVal(''); }
   function confirm() { onDone(pendingId, amtVal!==''?parseFloat(amtVal.replace(',','.')):null); setPending(null); }
   function skip()    { onDone(pendingId, null); setPending(null); }
-
   function openEta(id) { setEtaOpen(id); setEtaInputVal(''); }
   function confirmEta(id) {
     const ts = parseTimeToTs(etaInputVal);
@@ -892,6 +958,19 @@ function DriverView({ driver, route, done, sp, onDone, onBack }) {
         <span className="dv-hdr-name">{driver.name}</span>
         {onBack && <button className="dv-back" onClick={onBack}>← Changer</button>}
       </div>
+
+      {/* BOUTON GPS */}
+      <button onClick={toggleGps} style={{
+        width:'100%', marginBottom:10, padding:'9px',
+        background: gpsActive ? '#001830' : 'var(--s2)',
+        border: `1.5px solid ${gpsActive ? '#4FC3F7' : 'var(--border)'}`,
+        color: gpsActive ? '#4FC3F7' : 'var(--muted)',
+        borderRadius:10, fontFamily:'inherit', fontSize:12, fontWeight:700, cursor:'pointer',
+        display:'flex', alignItems:'center', justifyContent:'center', gap:8
+      }}>
+        {gpsActive ? '📍 GPS actif — position en direct' : '📍 Activer ma localisation GPS (optionnel)'}
+      </button>
+      {gpsErr && <div style={{fontSize:11,color:'var(--crit)',marginBottom:8,textAlign:'center'}}>{gpsErr}</div>}
 
       <div className="dv-clock">
         <div><div className="dv-clock-lbl">Heure</div><div>{time}</div></div>
@@ -1148,6 +1227,50 @@ function CustomerView({ order, route, sp }) {
         </div>
       )}
 
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════
+// HISTORY VIEW
+// ══════════════════════════════════════════════════════════
+function HistoryView() {
+  const [history, setHistory] = useState({});
+  useEffect(() => { dbOn('history', v => setHistory(v || {})); }, []);
+
+  const entries = Object.entries(history).sort((a,b) => (b[1].savedAt||0) - (a[1].savedAt||0));
+
+  return (
+    <div className="content">
+      <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--muted)',padding:'4px 0 8px'}}>
+        Historique des journées
+      </div>
+      {entries.length === 0 && <div className="empty-txt">Aucun historique — il apparaîtra après le premier reset journée</div>}
+      {entries.map(([id, snap]) => {
+        const orders = snap.orders || [];
+        const done   = orders.filter(o => o.status === 'done');
+        const total  = done.reduce((s,o) => s + (parseFloat(o.amount)||0), 0);
+        return (
+          <div className="card" key={id}>
+            <div className="route-hdr">
+              <span className="route-hdr-name">📅 {snap.date}</span>
+              <span className="route-hdr-n">{done.length}/{orders.length} livrées</span>
+            </div>
+            {total > 0 && <div className="route-total">💰 Total encaissé : {fmtEuro(total)}</div>}
+            {done.map((o,i) => (
+              <div className="order-row" key={i} style={{opacity:.7}}>
+                <div className="o-num" style={{color:'var(--ok)'}}>✓</div>
+                <div className="o-body">
+                  <div className="o-client">{o.client}</div>
+                  <div className="o-addr">{o.address}</div>
+                  {o.amount!=null && <div style={{fontSize:10,color:'var(--ok)',marginTop:2}}>💰 {fmtEuro(o.amount)}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+      <div style={{height:20}}/>
     </div>
   );
 }
