@@ -292,12 +292,14 @@ function Toast({ msg, onDone }) {
 function App() {
   const [fbReady,  setFbReady]  = useState(!!window._firebaseReady);
   const [drivers,  setDrivers]  = useState({});
+  const [meetups,  setMeetups]  = useState({});
   const [orders,   setOrders]   = useState({});
-  const [gpsPos,   setGpsPos]   = useState(null); // GPS en direct du livreur
+  const [gpsPos,   setGpsPos]   = useState(null);
   const [screen,   setScreen]   = useState(() => {
     const h = window.location.hash;
     if (h.startsWith('#driver-')) return h.slice(1);
     if (h.startsWith('#track-'))  return h.slice(1);
+    if (h.startsWith('#meetup-')) return h.slice(1);
     return 'admin';
   });
   const [toast, setToast] = useState('');
@@ -310,13 +312,16 @@ function App() {
   useEffect(() => {
     if (!fbReady) return;
     dbOn('drivers', v => setDrivers(v || {}));
+    dbOn('meetups', v => setMeetups(v || {}));
     dbOn('orders',  v => setOrders(v  || {}));
   }, [fbReady]);
   useEffect(() => {
-    if (screen.startsWith('driver-') || screen.startsWith('track-')) window.location.hash = screen;
+    if (screen.startsWith('driver-') || screen.startsWith('track-') || screen.startsWith('meetup-'))
+      window.location.hash = screen;
     else history.replaceState(null,'',window.location.pathname);
   }, [screen]);
 
+  // ── Drivers ──
   async function addDriver(name) {
     if (!name.trim()) return;
     await dbPush('drivers', { name: name.trim(), color: PALETTE[Object.keys(drivers).length % PALETTE.length] });
@@ -326,21 +331,30 @@ function App() {
     Object.entries(orders).forEach(([oid,o]) => { if (o.driverId===id) dbUpd(`orders/${oid}`,{driverId:null}); });
   }
   async function updateDriver(id, p) { await dbUpd(`drivers/${id}`, p); }
+
+  // ── Meetups ──
+  async function addMeetup(name) {
+    if (!name.trim()) return;
+    const color = PALETTE[(Object.keys(drivers).length + Object.keys(meetups).length) % PALETTE.length];
+    await dbPush('meetups', { name: name.trim(), color });
+  }
+  async function removeMeetup(id) {
+    await dbRem(`meetups/${id}`);
+    Object.entries(orders).forEach(([oid,o]) => { if (o.meetupId===id) dbUpd(`orders/${oid}`,{meetupId:null}); });
+  }
+  async function updateMeetup(id, p) { await dbUpd(`meetups/${id}`, p); }
+
+  // ── Orders ──
   async function updateOrder(id, p) { await dbUpd(`orders/${id}`, p); }
   async function deleteOrder(id) { await dbRem(`orders/${id}`); }
 
   function startPos(did) {
     const d = drivers[did];
-    // 1. GPS en direct (le plus précis — si le livreur l'a activé)
     if (gpsPos) return gpsPos;
-    // 2. Dernière adresse livrée (le livreur est là-bas)
     const doneForDriver = Object.values(orders)
       .filter(o => o.driverId === did && o.status === 'done' && o.lat && o.lng)
       .sort((a,b) => (b.deliveredAt||b.addedAt) - (a.deliveredAt||a.addedAt));
-    if (doneForDriver.length > 0) {
-      return { lat: doneForDriver[0].lat, lng: doneForDriver[0].lng };
-    }
-    // 3. Point de départ initial (aucune livraison faite)
+    if (doneForDriver.length > 0) return { lat: doneForDriver[0].lat, lng: doneForDriver[0].lng };
     return d?.baseLat ? {lat: d.baseLat, lng: d.baseLng} : null;
   }
   function getRoute(did) {
@@ -353,6 +367,14 @@ function App() {
     return Object.entries(orders).filter(([,o])=>o.driverId===did&&o.status==='done')
       .map(([id,o])=>({...o,id})).sort((a,b)=>b.addedAt-a.addedAt);
   }
+  function getMeetupOrders(mid) {
+    return Object.entries(orders).filter(([,o])=>o.meetupId===mid&&o.status!=='done')
+      .map(([id,o])=>({...o,id})).sort((a,b)=>a.addedAt-b.addedAt);
+  }
+  function getMeetupDone(mid) {
+    return Object.entries(orders).filter(([,o])=>o.meetupId===mid&&o.status==='done')
+      .map(([id,o])=>({...o,id})).sort((a,b)=>b.addedAt-a.addedAt);
+  }
 
   if (!fbReady) return (
     <div className="app"><div className="empty-txt" style={{marginTop:80}}>
@@ -362,10 +384,13 @@ function App() {
 
   const isDriverScreen = screen.startsWith('driver-');
   const isTrackScreen  = screen.startsWith('track-');
+  const isMeetupScreen = screen.startsWith('meetup-');
   const driverId       = isDriverScreen ? screen.replace('driver-','') : null;
   const trackOrderId   = isTrackScreen  ? screen.replace('track-','')  : null;
+  const meetupId       = isMeetupScreen ? screen.replace('meetup-','') : null;
   const curDriver      = driverId ? drivers[driverId] : null;
-  const isDirectLink   = (isDriverScreen || isTrackScreen) && !!window.location.hash;
+  const curMeetup      = meetupId ? meetups[meetupId] : null;
+  const isDirectLink   = (isDriverScreen || isTrackScreen || isMeetupScreen) && !!window.location.hash;
 
   // Vue client tracking
   if (isTrackScreen && isDirectLink) {
@@ -389,13 +414,25 @@ function App() {
     );
   }
 
-  if (isDirectLink && curDriver) return (
+  // Vue livreur directe
+  if (isDriverScreen && isDirectLink && curDriver) return (
     <div className="app">
       <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
       <DriverView driver={{...curDriver,id:driverId}} route={getRoute(driverId)} done={getDone(driverId)}
         sp={startPos(driverId)}
         onDone={(id,amt)=>updateOrder(id,{status:'done',amount:amt??null,deliveredAt:Date.now()})}
-        onGpsUpdate={pos=>setGpsPos(pos)}
+        onGpsUpdate={pos=>setGpsPos(pos)} onBack={null}/>
+      {toast && <Toast msg={toast} onDone={()=>setToast('')}/>}
+    </div>
+  );
+
+  // Vue meet up directe
+  if (isMeetupScreen && isDirectLink && curMeetup) return (
+    <div className="app">
+      <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
+      <MeetupView meetup={{...curMeetup,id:meetupId}}
+        pending={getMeetupOrders(meetupId)} done={getMeetupDone(meetupId)}
+        onDone={(id,amt)=>updateOrder(id,{status:'done',amount:amt??null,deliveredAt:Date.now()})}
         onBack={null}/>
       {toast && <Toast msg={toast} onDone={()=>setToast('')}/>}
     </div>
@@ -410,18 +447,19 @@ function App() {
           : <>
               <button className={`tab ${screen==='admin'?'on':''}`} onClick={()=>setScreen('admin')}>Admin</button>
               <button className={`tab ${screen==='history'?'on':''}`} onClick={()=>setScreen('history')}>📋</button>
-              <button className={`tab ${screen!=='admin'&&screen!=='history'?'on':''}`} onClick={()=>setScreen('driver-select')}>Chauffeur</button>
+              <button className={`tab ${screen==='driver-select'?'on':''}`} onClick={()=>setScreen('driver-select')}>Chauffeur</button>
             </>
         }
       </header>
 
       {screen==='admin' && (
-        <AdminView drivers={drivers} orders={orders}
+        <AdminView drivers={drivers} meetups={meetups} orders={orders}
           getRoute={getRoute} getDone={getDone} startPos={startPos}
+          getMeetupOrders={getMeetupOrders} getMeetupDone={getMeetupDone}
           addDriver={addDriver} removeDriver={removeDriver} updateDriver={updateDriver}
+          addMeetup={addMeetup} removeMeetup={removeMeetup} updateMeetup={updateMeetup}
           updateOrder={updateOrder} deleteOrder={deleteOrder}
           resetAll={async()=>{
-            // Sauvegarde historique avant reset
             const date = new Date().toLocaleDateString('fr-FR');
             const snap = { date, savedAt: Date.now(), orders: Object.values(orders) };
             await dbPush('history', snap);
@@ -430,14 +468,14 @@ function App() {
           onToast={setToast}/>
       )}
       {screen==='history' && <HistoryView/>}
+      {screen==='driver-select' && (
         <SelectDriver drivers={drivers} orders={orders} onSelect={id=>setScreen(`driver-${id}`)}/>
       )}
       {isDriverScreen && curDriver && (
         <DriverView driver={{...curDriver,id:driverId}} route={getRoute(driverId)} done={getDone(driverId)}
           sp={startPos(driverId)}
           onDone={(id,amt)=>updateOrder(id,{status:'done',amount:amt??null,deliveredAt:Date.now()})}
-          onGpsUpdate={pos=>setGpsPos(pos)}
-          onBack={()=>setScreen('driver-select')}/>
+          onGpsUpdate={pos=>setGpsPos(pos)} onBack={()=>setScreen('driver-select')}/>
       )}
       {toast && <Toast msg={toast} onDone={()=>setToast('')}/>}
     </div>
@@ -447,28 +485,34 @@ function App() {
 // ══════════════════════════════════════════════════════════
 // ADMIN VIEW
 // ══════════════════════════════════════════════════════════
-function AdminView({ drivers, orders, getRoute, getDone, startPos, addDriver, removeDriver, updateDriver, updateOrder, deleteOrder, resetAll, onToast }) {
+function AdminView({ drivers, meetups, orders, getRoute, getDone, startPos, getMeetupOrders, getMeetupDone, addDriver, removeDriver, updateDriver, addMeetup, removeMeetup, updateMeetup, updateOrder, deleteOrder, resetAll, onToast }) {
   const [newName, setNewName] = useState('');
-  const [form, setForm] = useState({client:'',address:'',driverId:'',note:''});
+  const [newMeetupName, setNewMeetupName] = useState('');
+  const [form, setForm] = useState({client:'',address:'',driverId:'',meetupId:'',note:''});
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
 
   async function handleAdd() {
-    if (!form.client.trim() || !form.address.trim()) return;
+    if (!form.client.trim()) return;
+    const isMeetup = !!form.meetupId;
+    if (!isMeetup && !form.address.trim()) return;
     setLoading(true); setErr('');
     const ts = Date.now();
     const order = {
       client:form.client.trim(), address:form.address.trim(), note:form.note.trim(),
-      driverId:form.driverId||null, addedAt:ts, deadline:ts+DEADLINE_MS,
+      driverId:form.driverId||null, meetupId:form.meetupId||null,
+      addedAt:ts, deadline:ts+DEADLINE_MS,
       status:'pending', lat:null, lng:null, displayName:null
     };
     const pushed = await dbPush('orders', order);
-    setForm({client:'',address:'',driverId:'',note:''});
-    try {
-      const geo = await geocodeAddress(order.address);
-      await updateOrder(pushed.key, {lat:geo.lat, lng:geo.lng, displayName:geo.displayName});
-    } catch(e) { setErr('GPS non trouvé — commande ajoutée quand même'); }
-    finally { setLoading(false); }
+    setForm({client:'',address:'',driverId:'',meetupId:'',note:''});
+    if (!isMeetup && form.address.trim()) {
+      try {
+        const geo = await geocodeAddress(form.address.trim());
+        await updateOrder(pushed.key, {lat:geo.lat, lng:geo.lng, displayName:geo.displayName});
+      } catch(e) { setErr('GPS non trouvé — commande ajoutée quand même'); }
+    }
+    setLoading(false);
   }
 
   const unassigned = Object.entries(orders).filter(([,o])=>!o.driverId&&o.status!=='done');
@@ -485,18 +529,38 @@ function AdminView({ drivers, orders, getRoute, getDone, startPos, addDriver, re
               onChange={e=>setForm(f=>({...f,client:e.target.value}))}/>
           </div>
           <div className="fld">
-            <label className="fld-lbl">Adresse de livraison</label>
-            <input className="inp" placeholder="Ex : 14 rue de la Paix, Lyon" value={form.address}
-              onChange={e=>setForm(f=>({...f,address:e.target.value}))}
-              onKeyDown={e=>e.key==='Enter'&&handleAdd()}/>
-          </div>
-          <div className="fld">
-            <label className="fld-lbl">Chauffeur</label>
-            <select className="inp" value={form.driverId} onChange={e=>setForm(f=>({...f,driverId:e.target.value}))}>
-              <option value="">— Non assigné</option>
-              {Object.entries(drivers).map(([id,d])=><option key={id} value={id}>{d.name}</option>)}
+            <label className="fld-lbl">Type</label>
+            <select className="inp" value={form.meetupId ? 'meetup' : 'delivery'}
+              onChange={e=>{ if(e.target.value==='delivery') setForm(f=>({...f,meetupId:''})); else setForm(f=>({...f,driverId:'',address:''})); }}>
+              <option value="delivery">🛵 Livraison à domicile</option>
+              <option value="meetup">📍 Meet up (sur place)</option>
             </select>
           </div>
+          {!form.meetupId ? (
+            <>
+              <div className="fld">
+                <label className="fld-lbl">Adresse de livraison</label>
+                <input className="inp" placeholder="Ex : 14 rue de la Paix, Lyon" value={form.address}
+                  onChange={e=>setForm(f=>({...f,address:e.target.value}))}
+                  onKeyDown={e=>e.key==='Enter'&&handleAdd()}/>
+              </div>
+              <div className="fld">
+                <label className="fld-lbl">Chauffeur</label>
+                <select className="inp" value={form.driverId} onChange={e=>setForm(f=>({...f,driverId:e.target.value}))}>
+                  <option value="">— Non assigné</option>
+                  {Object.entries(drivers).map(([id,d])=><option key={id} value={id}>{d.name}</option>)}
+                </select>
+              </div>
+            </>
+          ) : (
+            <div className="fld">
+              <label className="fld-lbl">Point Meet up</label>
+              <select className="inp" value={form.meetupId} onChange={e=>setForm(f=>({...f,meetupId:e.target.value}))}>
+                <option value="">— Choisir un point</option>
+                {Object.entries(meetups).map(([id,m])=><option key={id} value={id}>{m.name}</option>)}
+              </select>
+            </div>
+          )}
           <div className="fld">
             <label className="fld-lbl">Message pour le livreur</label>
             <textarea className="inp" rows={3} value={form.note}
@@ -507,7 +571,7 @@ function AdminView({ drivers, orders, getRoute, getDone, startPos, addDriver, re
           {loading && <div className="geocoding-row"><span className="spin"/> Localisation GPS…</div>}
           {err && <div className="err">⚠ {err}</div>}
           <button className="btn-main" onClick={handleAdd}
-            disabled={!form.client.trim()||!form.address.trim()||loading}>
+            disabled={!form.client.trim()||((!form.meetupId&&!form.address.trim()))||(form.meetupId===''&&!form.driverId&&!form.meetupId)||loading}>
             + Ajouter la commande
           </button>
         </div>
@@ -541,6 +605,77 @@ function AdminView({ drivers, orders, getRoute, getDone, startPos, addDriver, re
             onChange={e=>setNewName(e.target.value)}
             onKeyDown={e=>{if(e.key==='Enter'&&newName.trim()){addDriver(newName);setNewName('');}}}/>
           <button className="btn-add" onClick={()=>{if(newName.trim()){addDriver(newName);setNewName('');}}}>+ Ajouter</button>
+        </div>
+      </div>
+
+      {/* POINTS MEET UP */}
+      <div className="card">
+        <div className="card-pad" style={{paddingBottom:0}}>
+          <div className="sec-label">📍 Points Meet up ({Object.keys(meetups).length})</div>
+        </div>
+        {Object.keys(meetups).length===0 && <div className="empty-txt">Aucun point meet up</div>}
+        {Object.entries(meetups).map(([id,m])=>{
+          const n = Object.values(orders).filter(o=>o.meetupId===id&&o.status!=='done').length;
+          const link = `${window.location.href.split('#')[0]}#meetup-${id}`;
+          const total = Object.values(orders).filter(o=>o.meetupId===id&&o.status==='done').reduce((s,o)=>s+(parseFloat(o.amount)||0),0);
+          return (
+            <div key={id}>
+              <div className="driver-row">
+                <div className="dot" style={{background:m.color}}/>
+                <span className="driver-row-name">{m.name}</span>
+                <span className="driver-row-n">{n} en attente</span>
+                {total>0 && <span style={{fontFamily:'Space Mono,monospace',fontSize:10,color:'var(--ok)'}}>💰{fmtEuro(total)}</span>}
+                <button className="btn-sm" style={{color:'#06D6A0'}} onClick={()=>{navigator.clipboard.writeText(link);onToast('🔗 Lien copié !');}}>🔗 Lien</button>
+                <button className="btn-sm btn-del" onClick={()=>removeMeetup(id)}>✕</button>
+              </div>
+              {/* Stock meet up */}
+              <MeetupStockRow meetup={{...m,id}} onUpdate={updateMeetup}/>
+              {/* Clients en attente au meet up */}
+              {getMeetupOrders(id).map(o=>(
+                <div className="order-row" key={o.id} style={{background: o.status==='arrived'?'#001830':''}}>
+                  <div className="o-num" style={{color: o.status==='arrived'?'#4FC3F7':'var(--accent)'}}>
+                    {o.status==='arrived'?'✓':'⏳'}
+                  </div>
+                  <div className="o-body">
+                    <div className="o-client">{o.client}</div>
+                    {o.note && <div style={{fontSize:11,color:'#FFD60A'}}>📋 {o.note}</div>}
+                    <div className="o-time">↓ {fmtTime(o.addedAt)}</div>
+                  </div>
+                  <div className="o-actions">
+                    {o.status!=='arrived' ? (
+                      <button className="btn-sm" style={{color:'#4FC3F7',whiteSpace:'nowrap'}}
+                        onClick={()=>{
+                          updateOrder(o.id,{status:'arrived'});
+                          // Notification au meet up person
+                          if(Notification.permission==='granted')
+                            new Notification('📍 Client arrivé !',{body:`${o.client} est sur place`});
+                        }}>Client arrivé</button>
+                    ) : (
+                      <span style={{fontSize:10,color:'#4FC3F7',fontWeight:700}}>Sur place</span>
+                    )}
+                    <button className="btn-sm btn-del" onClick={()=>deleteOrder(o.id)}>✕</button>
+                  </div>
+                </div>
+              ))}
+              {/* Livrés au meet up */}
+              {getMeetupDone(id).map(o=>(
+                <div className="order-row" key={o.id} style={{opacity:.4}}>
+                  <div className="o-num" style={{color:'var(--ok)'}}>✓</div>
+                  <div className="o-body">
+                    <div className="o-client">{o.client}</div>
+                    {o.amount!=null && <div style={{fontSize:10,color:'var(--ok)'}}>💰 {fmtEuro(o.amount)}</div>}
+                  </div>
+                  <button className="btn-sm btn-del" onClick={()=>deleteOrder(o.id)}>✕</button>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+        <div className="add-row">
+          <input className="add-inp" placeholder="Nom du point (ex: Boutique, Stand...)" value={newMeetupName}
+            onChange={e=>setNewMeetupName(e.target.value)}
+            onKeyDown={e=>{if(e.key==='Enter'&&newMeetupName.trim()){addMeetup(newMeetupName);setNewMeetupName('');}}}/>
+          <button className="btn-add" onClick={()=>{if(newMeetupName.trim()){addMeetup(newMeetupName);setNewMeetupName('');}}}>+ Ajouter</button>
         </div>
       </div>
 
@@ -1227,6 +1362,201 @@ function CustomerView({ order, route, sp }) {
         </div>
       )}
 
+    </div>
+  );
+}
+
+// ── Meetup Stock Row ─────────────────────────────────────────
+function MeetupStockRow({ meetup, onUpdate }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState('');
+  async function save() {
+    const v = parseFloat(val.replace(',','.'));
+    await onUpdate(meetup.id, {stock: isNaN(v)?null:v});
+    setEditing(false);
+  }
+  return (
+    <div style={{padding:'0 14px 8px',borderBottom:'1px solid var(--border)'}}>
+      {!editing ? (
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <span style={{fontSize:11,color:meetup.stock>0?'#FFD60A':'var(--muted)'}}>
+            {meetup.stock>0?`💼 Stock : ${fmtEuro(meetup.stock)}`:'💼 Aucun stock défini'}
+          </span>
+          <button className="btn-sm" onClick={()=>{setVal(meetup.stock>0?String(meetup.stock):'');setEditing(true);}}>
+            {meetup.stock>0?'Modifier':'+ Définir'}
+          </button>
+        </div>
+      ) : (
+        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+          <input className="add-inp" style={{fontSize:13,width:120}} autoFocus type="number" inputMode="decimal"
+            placeholder="Ex: 5000" value={val}
+            onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&save()}/>
+          <span style={{color:'#FFD60A',fontWeight:700}}>€</span>
+          <button className="btn-add" onClick={save} disabled={!val.trim()}>✓</button>
+          <button className="btn-sm" onClick={()=>setEditing(false)}>✕</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════
+// MEETUP VIEW — vue de la personne sur place
+// ══════════════════════════════════════════════════════════
+function MeetupView({ meetup, pending, done, onDone, onBack }) {
+  const [time, setTime] = useState(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
+  const [pendingId, setPending] = useState(null);
+  const [amtVal, setAmtVal] = useState('');
+  const prevArrivedCount = React.useRef(pending.filter(o=>o.status==='arrived').length);
+
+  useEffect(()=>{
+    const t = setInterval(()=>setTime(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})),30000);
+    return ()=>clearInterval(t);
+  },[]);
+
+  // Notification quand nouveau client marqué "arrivé" par l'admin
+  useEffect(()=>{
+    if('Notification' in window && Notification.permission==='default') Notification.requestPermission();
+  },[]);
+  useEffect(()=>{
+    const arrivedNow = pending.filter(o=>o.status==='arrived').length;
+    if(arrivedNow > prevArrivedCount.current) {
+      const newest = pending.filter(o=>o.status==='arrived').pop();
+      if(newest && Notification.permission==='granted') {
+        new Notification('📍 Client sur place !', {body:`${newest.client} est arrivé`});
+      }
+    }
+    prevArrivedCount.current = arrivedNow;
+  },[pending]);
+
+  function handleDone(id) { setPending(id); setAmtVal(''); }
+  function confirm() { onDone(pendingId, amtVal!==''?parseFloat(amtVal.replace(',','.')):null); setPending(null); }
+  function skip() { onDone(pendingId, null); setPending(null); }
+
+  const totalDone = done.reduce((s,o)=>s+(parseFloat(o.amount)||0),0);
+  const waiting   = pending.filter(o=>o.status!=='arrived');
+  const arrived   = pending.filter(o=>o.status==='arrived');
+
+  return (
+    <div className="dv-wrap">
+      <div className="dv-hdr">
+        <div className="dot" style={{background:meetup.color,width:12,height:12}}/>
+        <span className="dv-hdr-name">📍 {meetup.name}</span>
+        {onBack && <button className="dv-back" onClick={onBack}>← Retour</button>}
+      </div>
+
+      <div className="dv-clock">
+        <div><div className="dv-clock-lbl">Heure</div><div>{time}</div></div>
+        <div style={{textAlign:'right'}}><div className="dv-clock-lbl">En attente</div><div>{waiting.length}</div></div>
+      </div>
+
+      {/* BILAN STOCK */}
+      {(meetup.stock>0||totalDone>0) && (
+        <div style={{background:'#0a1a0e',border:'1px solid #0f3d25',borderRadius:12,padding:14,marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:10}}>Bilan journée</div>
+          <div style={{display:'flex',gap:8}}>
+            {meetup.stock>0 && (
+              <div style={{flex:1,background:'#061a0e',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
+                <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Stock départ</div>
+                <div style={{fontFamily:'Space Mono,monospace',fontSize:13,fontWeight:700,color:'var(--muted)'}}>{fmtEuro(meetup.stock)}</div>
+              </div>
+            )}
+            <div style={{flex:1,background:'#061a0e',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
+              <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Encaissé</div>
+              <div style={{fontFamily:'Space Mono,monospace',fontSize:13,fontWeight:700,color:'var(--ok)'}}>{fmtEuro(totalDone)}</div>
+            </div>
+            {meetup.stock>0 && (
+              <div style={{flex:1,background:'#061a0e',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
+                <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Restant</div>
+                <div style={{fontFamily:'Space Mono,monospace',fontSize:13,fontWeight:700,color:'#4FC3F7'}}>{fmtEuro(Math.max(0,meetup.stock-totalDone))}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {pending.length===0&&done.length===0 && <div className="empty-txt">Aucun client pour le moment 👍</div>}
+      {pending.length===0&&done.length>0 && <div className="empty-txt" style={{color:'var(--ok)'}}>🎉 Tous les clients ont été servis !</div>}
+
+      {/* CLIENTS ARRIVÉS — à traiter en priorité */}
+      {arrived.map(o=>{
+        const isPending = pendingId===o.id;
+        return (
+          <div className="dv-order" key={o.id} style={{border:'2px solid #4FC3F7'}}>
+            <div style={{background:'#001830',padding:'5px 13px',fontSize:11,color:'#4FC3F7',fontWeight:700}}>
+              📍 CLIENT SUR PLACE
+            </div>
+            <div className="dv-order-top">
+              <div className="dv-n" style={{color:'#4FC3F7'}}>!</div>
+              <div className="dv-body">
+                <div className="dv-client">{o.client}</div>
+                {o.note && <div style={{background:'#1a1400',border:'1px solid #3a2e00',borderRadius:8,padding:'8px 10px',marginBottom:8,fontSize:13,color:'#FFD60A',lineHeight:'1.6',whiteSpace:'pre-wrap'}}>📋 {o.note}</div>}
+                {!isPending ? (
+                  <button className="dv-done" style={{width:'100%'}} onClick={()=>handleDone(o.id)}>✓ Client servi</button>
+                ) : (
+                  <div className="amount-box">
+                    <div className="amount-box-lbl">💰 Montant encaissé ?</div>
+                    <div className="amount-row">
+                      <input className="amount-inp" type="number" inputMode="decimal" placeholder="0.00" value={amtVal}
+                        onChange={e=>setAmtVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&confirm()} autoFocus/>
+                      <span style={{color:'var(--ok)',fontWeight:700,fontSize:16}}>€</span>
+                      <button className="amount-confirm" onClick={confirm}>✓ OK</button>
+                      <button className="amount-skip" onClick={skip}>Passer</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="dv-order-footer">
+              <span className="dv-added">Reçu {fmtTime(o.addedAt)}</span>
+              <span className={`badge b-${urgency(o.deadline)}`}>{fmtCountdown(o.deadline)}</span>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* CLIENTS EN ATTENTE */}
+      {waiting.length>0 && (
+        <>
+          {arrived.length>0 && <div style={{margin:'12px 0 6px',fontSize:10,color:'var(--muted)',letterSpacing:'2px',textTransform:'uppercase',fontWeight:700,textAlign:'center'}}>En attente</div>}
+          {waiting.map((o,i)=>(
+            <div className="dv-order" key={o.id}>
+              <div className="dv-order-top">
+                <div className="dv-n">{i+1}</div>
+                <div className="dv-body">
+                  <div className="dv-client">{o.client}</div>
+                  {o.note && <div style={{background:'#1a1400',border:'1px solid #3a2e00',borderRadius:8,padding:'8px 10px',fontSize:13,color:'#FFD60A',lineHeight:'1.6',whiteSpace:'pre-wrap'}}>📋 {o.note}</div>}
+                </div>
+              </div>
+              <div className="dv-order-footer">
+                <span className="dv-added">Reçu {fmtTime(o.addedAt)}</span>
+                <span className={`badge b-${urgency(o.deadline)}`}>{fmtCountdown(o.deadline)}</span>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* CLIENTS SERVIS */}
+      {done.length>0 && <>
+        <div style={{margin:'16px 0 8px',fontSize:10,color:'var(--muted)',letterSpacing:'2px',textTransform:'uppercase',fontWeight:700,textAlign:'center'}}>✓ Déjà servis</div>
+        {done.map(o=>(
+          <div className="dv-order done" key={o.id}>
+            <div className="dv-order-top">
+              <div className="dv-n" style={{color:'var(--ok)'}}>✓</div>
+              <div className="dv-body">
+                <div className="dv-client">{o.client}</div>
+                {o.note && <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>📋 {o.note}</div>}
+              </div>
+            </div>
+            <div className="dv-order-footer">
+              <span className="dv-added">Servi — {fmtTime(o.addedAt)}</span>
+              {o.amount!=null && <span style={{fontFamily:'Space Mono,monospace',fontSize:12,color:'var(--ok)',fontWeight:700}}>{fmtEuro(o.amount)}</span>}
+            </div>
+          </div>
+        ))}
+      </>}
+      <div style={{height:20}}/>
     </div>
   );
 }
