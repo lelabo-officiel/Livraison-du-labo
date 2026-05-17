@@ -81,6 +81,7 @@ select.inp option{background:#1a1a1a}
 .route-hdr-name{flex:1;font-weight:700;font-size:14px}
 .route-hdr-n{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)}
 .route-total{font-family:'Space Mono',monospace;font-size:11px;color:var(--ok);font-weight:700;padding:5px 14px;background:#0a1a0e;border-bottom:1px solid var(--border)}
+.route-duration{font-family:'Space Mono',monospace;font-size:11px;color:#4FC3F7;font-weight:700;padding:5px 14px;background:#001830;border-bottom:1px solid var(--border)}
 .order-row{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}
 .order-row:last-child{border-bottom:none}
 .o-num{font-family:'Space Mono',monospace;font-size:16px;font-weight:700;color:var(--accent);min-width:20px;padding-top:2px}
@@ -95,6 +96,7 @@ select.inp option{background:#1a1a1a}
 .b-critical{background:#2a0b12;color:var(--crit)}
 .b-late{background:var(--crit);color:#fff;animation:blink 1s ease-in-out infinite}
 .b-eta{background:#001830;color:#4FC3F7}
+.b-osrm-fail{background:#2a0b12;color:var(--crit);animation:blink 2s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
 .o-actions{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
 .unassigned-row{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border)}
@@ -136,6 +138,7 @@ select.inp option{background:#1a1a1a}
 .empty-txt{padding:20px 14px;text-align:center;color:var(--muted);font-size:13px}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid var(--ok);color:var(--ok);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:999;animation:fadeup .3s ease}
 @keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.optim-banner{background:#001830;border:1px solid #4FC3F7;color:#4FC3F7;font-size:11px;font-weight:700;padding:6px 14px;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px}
 </style>
 
 </head>
@@ -143,55 +146,250 @@ select.inp option{background:#1a1a1a}
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef, useMemo } = React;
 
 const PALETTE    = ['#FF6B00','#00C4FF','#06D6A0','#FFD60A','#C77DFF','#FF4D6D'];
 const DEADLINE_MS = 3 * 60 * 60 * 1000;
 const STOP_MS     = 5 * 60 * 1000; // 5 min chez le client
 
-// ── Algorithme ──────────────────────────────────────────────
-function haversine(a, b) {
+// ── Dépôt par défaut ────────────────────────────────────────
+// Adresse imposée pour tous les chauffeurs sans baseAddress défini.
+// Coordonnées vérifiées via Nominatim pour 14 rue Jules Massenet, 25200 Montbéliard.
+const DEFAULT_DEPOT = {
+  address: '14 rue Jules Massenet, 25200 Montbéliard',
+  lat: 47.5158,
+  lng: 6.7889
+};
+
+// ════════════════════════════════════════════════════════════
+// MOTEUR D'OPTIMISATION — temps OSRM, 2-opt, retour au dépôt
+// ════════════════════════════════════════════════════════════
+
+// Cache global des durées OSRM, keyé par paire de coordonnées arrondies
+// Évite de rappeler OSRM pour les mêmes paires de points.
+const OSRM_CACHE = new Map();
+const COORD_PRECISION = 5; // 5 décimales = ~1m de précision
+
+function coordKey(p) {
+  return `${p.lat.toFixed(COORD_PRECISION)},${p.lng.toFixed(COORD_PRECISION)}`;
+}
+function pairKey(a, b) {
+  return `${coordKey(a)}|${coordKey(b)}`;
+}
+
+// Haversine — fallback uniquement si OSRM échoue
+function haversineKm(a, b) {
   if (!a?.lat || !b?.lat) return Infinity;
   const R = 6371, r = x => x * Math.PI / 180;
   const dLat = r(b.lat-a.lat), dLng = r(b.lng-a.lng);
   const aa = Math.sin(dLat/2)**2 + Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLng/2)**2;
   return R * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1-aa));
 }
+// Estime un temps de fallback (50 km/h moyenne)
+function haversineFallbackSec(a, b) {
+  return haversineKm(a, b) / 50 * 3600;
+}
 
-function optimizeRoute(orders, startPos) {
-  const ready = orders.filter(o => o.status !== 'done');
-  if (ready.length <= 1) return ready;
-  const now = Date.now();
-  let rem = [...ready], route = [], pos = startPos || null;
+// Récupère la matrice de durées OSRM pour un set de points.
+// Un seul appel API pour N points (au lieu de N×N appels point-à-point).
+// Retourne { matrix: number[][], failed: boolean }
+// matrix[i][j] = secondes de i vers j (0 si i===j)
+async function getOSRMMatrix(points) {
+  if (!points.length) return { matrix: [], failed: false };
+  if (points.length === 1) return { matrix: [[0]], failed: false };
 
-  while (rem.length) {
-    // Commandes "super urgentes" : attendent depuis plus de 3h ou deadline dans moins de 30min
-    const superUrgent = rem.filter(o => now - o.addedAt > 3*60*60*1000 || o.deadline - now < 30*60*1000);
-    // Commandes "normalement urgentes" : deadline dans moins de 80min
-    const urgent = rem.filter(o => o.deadline - now < 80*60*1000);
+  // Vérif cache : si toutes les paires sont déjà en cache, on évite l'appel
+  let allCached = true;
+  const cachedMatrix = points.map((_, i) =>
+    points.map((_, j) => {
+      if (i === j) return 0;
+      const k = pairKey(points[i], points[j]);
+      if (OSRM_CACHE.has(k)) return OSRM_CACHE.get(k);
+      allCached = false;
+      return null;
+    })
+  );
+  if (allCached) return { matrix: cachedMatrix, failed: false };
 
-    let pool;
-    if (superUrgent.length > 0) {
-      // Mode priorité : on exclut les nouvelles commandes (< 45min) sauf si pas le choix
-      const veterans = rem.filter(o => now - o.addedAt > 45*60*1000);
-      const candidates = veterans.length > 0 ? veterans : rem;
-      pool = candidates.slice().sort((a,b) => a.deadline - b.deadline);
-    } else if (urgent.length > 0) {
-      pool = urgent.slice().sort((a,b) => a.deadline - b.deadline);
-    } else {
-      pool = rem.slice().sort((a,b) => a.deadline - b.deadline);
+  // Appel OSRM /table
+  const coords = points.map(p => `${p.lng},${p.lat}`).join(';');
+  const url = `https://router.project-osrm.org/table/v1/driving/${coords}?annotations=duration`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.code !== 'Ok' || !data.durations) throw new Error('OSRM bad response');
+    // Mise en cache
+    for (let i = 0; i < points.length; i++) {
+      for (let j = 0; j < points.length; j++) {
+        if (i !== j && data.durations[i][j] != null) {
+          OSRM_CACHE.set(pairKey(points[i], points[j]), data.durations[i][j]);
+        }
+      }
     }
-
-    let pick;
-    if (pos && pool.length > 1) {
-      // Parmi les candidats dans une fenêtre de 25min, prendre le plus proche géo
-      const win = pool.filter(o => o.deadline - pool[0].deadline < 25*60*1000);
-      pick = win.reduce((best, o) => haversine(pos,o) < haversine(pos,best) ? o : best);
-    } else pick = pool[0];
-
-    route.push(pick); pos = pick; rem = rem.filter(o => o.id !== pick.id);
+    return { matrix: data.durations, failed: false };
+  } catch (e) {
+    // Retry une fois après 800 ms
+    await new Promise(r => setTimeout(r, 800));
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.code !== 'Ok' || !data.durations) throw new Error('OSRM bad response');
+      for (let i = 0; i < points.length; i++) {
+        for (let j = 0; j < points.length; j++) {
+          if (i !== j && data.durations[i][j] != null) {
+            OSRM_CACHE.set(pairKey(points[i], points[j]), data.durations[i][j]);
+          }
+        }
+      }
+      return { matrix: data.durations, failed: false };
+    } catch (e2) {
+      // Fallback haversine
+      console.warn('OSRM indisponible, fallback haversine', e2);
+      const mat = points.map((a, i) => points.map((b, j) => i === j ? 0 : haversineFallbackSec(a, b)));
+      return { matrix: mat, failed: true };
+    }
   }
-  return route;
+}
+
+// Coût total d'une tournée : depot → orders[perm[0]] → ... → orders[perm[k]] → depot
+function tourCost(matrix, perm) {
+  // Indice 0 = dépôt, indices 1..N = orders
+  // perm est un tableau d'indices dans 1..N
+  let cost = matrix[0][perm[0]];
+  for (let i = 0; i < perm.length - 1; i++) {
+    cost += matrix[perm[i]][perm[i+1]];
+  }
+  cost += matrix[perm[perm.length-1]][0]; // retour dépôt
+  return cost;
+}
+
+// Nearest insertion : on construit la tournée en insérant chaque point
+// à la position où il coûte le moins, en partant du dépôt.
+function nearestInsertion(matrix, orderCount) {
+  if (orderCount === 0) return [];
+  if (orderCount === 1) return [1];
+
+  // Démarrer avec le point le plus proche du dépôt
+  let best = 1, bestD = matrix[0][1];
+  for (let i = 2; i <= orderCount; i++) {
+    if (matrix[0][i] < bestD) { bestD = matrix[0][i]; best = i; }
+  }
+  const tour = [best];
+  const inserted = new Set([best]);
+
+  while (inserted.size < orderCount) {
+    // Pour chaque point non inséré, trouver la meilleure position d'insertion
+    let bestPoint = -1, bestPos = -1, bestDelta = Infinity;
+    for (let p = 1; p <= orderCount; p++) {
+      if (inserted.has(p)) continue;
+      // Essai à chaque position (0 = début, tour.length = fin)
+      for (let pos = 0; pos <= tour.length; pos++) {
+        const prev = pos === 0 ? 0 : tour[pos-1];
+        const next = pos === tour.length ? 0 : tour[pos];
+        const delta = matrix[prev][p] + matrix[p][next] - matrix[prev][next];
+        if (delta < bestDelta) {
+          bestDelta = delta; bestPoint = p; bestPos = pos;
+        }
+      }
+    }
+    tour.splice(bestPos, 0, bestPoint);
+    inserted.add(bestPoint);
+  }
+  return tour;
+}
+
+// 2-opt : améliore la tournée en inversant des segments tant que ça réduit le coût
+function twoOpt(matrix, tour) {
+  const n = tour.length;
+  if (n < 4) return tour;
+  let improved = true;
+  let best = tour.slice();
+  let bestCost = tourCost(matrix, best);
+  let iterations = 0;
+  const MAX_ITER = 50; // garde-fou
+  while (improved && iterations < MAX_ITER) {
+    improved = false;
+    iterations++;
+    for (let i = 0; i < n - 1; i++) {
+      for (let j = i + 1; j < n; j++) {
+        // Inverser best[i..j]
+        const cand = best.slice(0, i).concat(best.slice(i, j+1).reverse(), best.slice(j+1));
+        const c = tourCost(matrix, cand);
+        if (c < bestCost - 0.01) { // tolérance numérique
+          best = cand; bestCost = c; improved = true;
+        }
+      }
+    }
+  }
+  return best;
+}
+
+// Optimise la tournée d'un livreur.
+// orders : commandes pending avec lat/lng
+// depot : {lat, lng} point de départ et d'arrivée
+// Retourne { ordered: orders[], totalDurationSec, osrmFailed: boolean }
+async function optimizeRouteOSRM(orders, depot) {
+  const valid = orders.filter(o => o.lat && o.lng);
+  const invalid = orders.filter(o => !o.lat || !o.lng);
+
+  if (valid.length === 0) {
+    return { ordered: invalid, totalDurationSec: 0, osrmFailed: false };
+  }
+
+  const points = [depot, ...valid.map(o => ({ lat: o.lat, lng: o.lng }))];
+  const { matrix, failed } = await getOSRMMatrix(points);
+
+  if (valid.length === 1) {
+    const total = matrix[0][1] + matrix[1][0];
+    return { ordered: [...valid, ...invalid], totalDurationSec: total, osrmFailed: failed };
+  }
+
+  let tour = nearestInsertion(matrix, valid.length);
+  tour = twoOpt(matrix, tour);
+
+  const ordered = tour.map(idx => valid[idx - 1]); // -1 car indice 0 = dépôt
+  const totalDurationSec = tourCost(matrix, tour);
+
+  return { ordered: [...ordered, ...invalid], totalDurationSec, osrmFailed: failed };
+}
+
+// ── Affectation auto : trouver le livreur avec le coût marginal le plus faible ──
+// Pour chaque livreur :
+//   1. Récupère sa tournée actuelle (pending) + son dépôt
+//   2. Calcule la durée optimale actuelle
+//   3. Calcule la durée optimale en ajoutant le nouveau point
+//   4. delta = nouvelle - actuelle
+// Le livreur retenu est celui avec le plus petit delta.
+async function findBestDriverForOrder(newOrder, drivers, ordersByDriver) {
+  const driverIds = Object.keys(drivers);
+  if (driverIds.length === 0) return null;
+  if (driverIds.length === 1) return driverIds[0];
+  if (!newOrder.lat || !newOrder.lng) return driverIds[0]; // pas de coords → premier livreur dispo
+
+  let bestDriver = null;
+  let bestDelta = Infinity;
+
+  for (const did of driverIds) {
+    const driver = drivers[did];
+    const depot = (driver.baseLat && driver.baseLng)
+      ? { lat: driver.baseLat, lng: driver.baseLng }
+      : { lat: DEFAULT_DEPOT.lat, lng: DEFAULT_DEPOT.lng };
+    const currentOrders = (ordersByDriver[did] || []).filter(o => o.lat && o.lng);
+
+    // Durée actuelle
+    const { totalDurationSec: currentTotal } = await optimizeRouteOSRM(currentOrders, depot);
+    // Durée avec le nouveau point
+    const { totalDurationSec: newTotal } = await optimizeRouteOSRM([...currentOrders, newOrder], depot);
+    const delta = newTotal - currentTotal;
+
+    if (delta < bestDelta) {
+      bestDelta = delta;
+      bestDriver = did;
+    }
+  }
+  return bestDriver;
 }
 
 // ── Géocodage ───────────────────────────────────────────────
@@ -205,45 +403,71 @@ async function geocodeAddress(address) {
   return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), displayName: data[0].display_name };
 }
 
-// ── ETAs via OSRM ───────────────────────────────────────────
-async function calcETAs(route, startPos) {
-  const result = new Array(route.length).fill(null);
-  const stops = route.map((o,i) => ({i,o})).filter(({o}) => o.lat && o.lng);
-  if (!stops.length) return result;
-  try {
-    const pts = startPos?.lat
-      ? [[startPos.lng, startPos.lat], ...stops.map(({o}) => [o.lng, o.lat])]
-      : stops.map(({o}) => [o.lng, o.lat]);
-    let legs = [];
-    if (pts.length >= 2) {
-      const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${pts.map(p=>p.join(',')).join(';')}?overview=false`);
-      const data = await res.json();
-      if (data.code === 'Ok') legs = data.routes[0].legs;
-    }
-    let t = Date.now();
-    stops.forEach(({i}, idx) => {
-      if (startPos?.lat) {
-        t += (legs[idx]?.duration ?? 0) * 1000 + STOP_MS;
-      } else {
-        t += idx === 0 ? 10*60*1000 : (legs[idx-1]?.duration ?? 0)*1000 + STOP_MS;
-      }
-      result[i] = t;
-    });
-  } catch(e) {}
-  return result;
+// ── ETAs basés sur la tournée optimisée ──────────────────────
+// On utilise la matrice OSRM déjà calculée : pour chaque point dans l'ordre,
+// le temps = somme des durées depuis le dépôt + 5 min par stop précédent.
+async function calcETAs(orderedRoute, depot) {
+  if (!orderedRoute.length) return [];
+  const valid = orderedRoute.filter(o => o.lat && o.lng);
+  if (!valid.length) return orderedRoute.map(() => null);
+
+  const points = [depot, ...valid.map(o => ({ lat: o.lat, lng: o.lng }))];
+  const { matrix } = await getOSRMMatrix(points);
+
+  const etaByValidIdx = [];
+  let t = Date.now();
+  for (let i = 0; i < valid.length; i++) {
+    const fromIdx = i === 0 ? 0 : i; // i=0 → dépôt; i>0 → point précédent
+    t += matrix[fromIdx][i + 1] * 1000;
+    etaByValidIdx.push(t);
+    t += STOP_MS; // temps passé chez le client
+  }
+  // Mapper sur orderedRoute (qui peut contenir des invalides en fin)
+  let vIdx = 0;
+  return orderedRoute.map(o => {
+    if (o.lat && o.lng) return etaByValidIdx[vIdx++];
+    return null;
+  });
 }
 
-function useETAs(route, startPos) {
+// Hook pour les ETAs
+function useETAs(route, depot) {
   const [etas, setEtas] = useState([]);
-  const key = route.map(o => `${o.id}:${o.lat??''}:${o.lng??''}`).join('|') + (startPos?`|${startPos.lat}`:'');
+  const key = route.map(o => `${o.id}:${o.lat??''}:${o.lng??''}`).join('|')
+    + (depot ? `|${depot.lat},${depot.lng}` : '');
   useEffect(() => {
-    setEtas(new Array(route.length).fill(null));
-    if (!route.length) return;
+    if (!route.length || !depot) { setEtas([]); return; }
     let dead = false;
-    calcETAs(route, startPos).then(r => { if (!dead) setEtas(r); });
+    calcETAs(route, depot).then(r => { if (!dead) setEtas(r); });
     return () => { dead = true; };
   }, [key]);
   return etas;
+}
+
+// Hook pour la tournée optimisée d'un chauffeur
+// Recalcule quand la liste des commandes ou le dépôt change
+function useOptimizedRoute(pendingOrders, depot) {
+  const [state, setState] = useState({ ordered: [], totalDurationSec: 0, osrmFailed: false, loading: true });
+  const key = pendingOrders.map(o => `${o.id}:${o.lat??''}:${o.lng??''}`).join('|')
+    + (depot ? `|${depot.lat},${depot.lng}` : '');
+  useEffect(() => {
+    if (!pendingOrders.length) {
+      setState({ ordered: [], totalDurationSec: 0, osrmFailed: false, loading: false });
+      return;
+    }
+    if (!depot) {
+      // Pas de dépôt → on garde l'ordre brut
+      setState({ ordered: pendingOrders, totalDurationSec: 0, osrmFailed: false, loading: false });
+      return;
+    }
+    let dead = false;
+    setState(s => ({ ...s, loading: true }));
+    optimizeRouteOSRM(pendingOrders, depot).then(r => {
+      if (!dead) setState({ ...r, loading: false });
+    });
+    return () => { dead = true; };
+  }, [key]);
+  return state;
 }
 
 // ── Formatters ──────────────────────────────────────────────
@@ -253,6 +477,13 @@ const fmtCountdown = d => {
   if (ms <= 0) return 'EN RETARD';
   const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
   return h > 0 ? `${h}h${String(m).padStart(2,'0')}` : `${m}min`;
+};
+const fmtDuration = sec => {
+  if (!sec || sec <= 0) return '–';
+  const m = Math.round(sec / 60);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60), mm = m % 60;
+  return `${h}h${String(mm).padStart(2,'0')}`;
 };
 const urgency = d => {
   const ms = d - Date.now();
@@ -264,7 +495,6 @@ const wazeUrl = o => o.lat && o.lng
   : `https://waze.com/ul?q=${encodeURIComponent(o.address)}&navigate=yes`;
 const fmtEuro = v => v != null && v !== '' ? `${parseFloat(v).toFixed(2).replace('.',',')} €` : null;
 
-// Convertit "HH:MM" en timestamp (aujourd'hui à cette heure)
 function parseTimeToTs(str) {
   const parts = str.trim().replace('h',':').split(':');
   if (parts.length < 2) return null;
@@ -294,7 +524,6 @@ function App() {
   const [drivers,  setDrivers]  = useState({});
   const [meetups,  setMeetups]  = useState({});
   const [orders,   setOrders]   = useState({});
-  const [gpsPos,   setGpsPos]   = useState(null);
   const [screen,   setScreen]   = useState(() => {
     const h = window.location.hash;
     if (h.startsWith('#driver-')) return h.slice(1);
@@ -308,7 +537,7 @@ function App() {
   useEffect(() => {
     if (!fbReady) window.addEventListener('firebaseReady', () => setFbReady(true));
   }, []);
-  useEffect(() => { const t = setInterval(() => tick(n=>n+1), 30000); return ()=>clearInterval(t); }, []);
+  useEffect(() => { const t = setInterval(() => tick(n=>n+1), 60000); return ()=>clearInterval(t); }, []);
   useEffect(() => {
     if (!fbReady) return;
     dbOn('drivers', v => setDrivers(v || {}));
@@ -324,7 +553,13 @@ function App() {
   // ── Drivers ──
   async function addDriver(name) {
     if (!name.trim()) return;
-    await dbPush('drivers', { name: name.trim(), color: PALETTE[Object.keys(drivers).length % PALETTE.length] });
+    await dbPush('drivers', {
+      name: name.trim(),
+      color: PALETTE[Object.keys(drivers).length % PALETTE.length],
+      baseAddress: DEFAULT_DEPOT.address,
+      baseLat: DEFAULT_DEPOT.lat,
+      baseLng: DEFAULT_DEPOT.lng
+    });
   }
   async function removeDriver(id) {
     await dbRem(`drivers/${id}`);
@@ -348,20 +583,18 @@ function App() {
   async function updateOrder(id, p) { await dbUpd(`orders/${id}`, p); }
   async function deleteOrder(id) { await dbRem(`orders/${id}`); }
 
-  function startPos(did) {
+  // Dépôt d'un livreur : son baseLat/Lng si défini, sinon dépôt par défaut Montbéliard
+  function depotFor(did) {
     const d = drivers[did];
-    if (gpsPos) return gpsPos;
-    const doneForDriver = Object.values(orders)
-      .filter(o => o.driverId === did && o.status === 'done' && o.lat && o.lng)
-      .sort((a,b) => (b.deliveredAt||b.addedAt) - (a.deliveredAt||a.addedAt));
-    if (doneForDriver.length > 0) return { lat: doneForDriver[0].lat, lng: doneForDriver[0].lng };
-    return d?.baseLat ? {lat: d.baseLat, lng: d.baseLng} : null;
+    if (d?.baseLat && d?.baseLng) return { lat: d.baseLat, lng: d.baseLng };
+    return { lat: DEFAULT_DEPOT.lat, lng: DEFAULT_DEPOT.lng };
   }
-  function getRoute(did) {
-    return optimizeRoute(
-      Object.entries(orders).filter(([,o])=>o.driverId===did&&o.status!=='done').map(([id,o])=>({...o,id})),
-      startPos(did)
-    );
+
+  // Commandes pending d'un livreur (non triées)
+  function pendingFor(did) {
+    return Object.entries(orders)
+      .filter(([,o]) => o.driverId === did && o.status !== 'done')
+      .map(([id,o]) => ({ ...o, id }));
   }
   function getDone(did) {
     return Object.entries(orders).filter(([,o])=>o.driverId===did&&o.status==='done')
@@ -403,13 +636,13 @@ function App() {
         </div>
       </div>
     );
-    const did = order.driverId;
-    const route = did ? getRoute(did) : [];
-    const sp    = did ? startPos(did) : null;
     return (
       <div className="app">
         <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
-        <CustomerView order={{...order, id:trackOrderId}} route={route} sp={sp}/>
+        <CustomerView
+          order={{...order, id:trackOrderId}}
+          pendingForDriver={order.driverId ? pendingFor(order.driverId) : []}
+          depot={order.driverId ? depotFor(order.driverId) : null}/>
       </div>
     );
   }
@@ -418,10 +651,11 @@ function App() {
   if (isDriverScreen && isDirectLink && curDriver) return (
     <div className="app">
       <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
-      <DriverView driver={{...curDriver,id:driverId}} route={getRoute(driverId)} done={getDone(driverId)}
-        sp={startPos(driverId)}
+      <DriverView driver={{...curDriver,id:driverId}}
+        pending={pendingFor(driverId)} done={getDone(driverId)}
+        depot={depotFor(driverId)}
         onDone={(id,amt)=>updateOrder(id,{status:'done',amount:amt??null,deliveredAt:Date.now()})}
-        onGpsUpdate={pos=>setGpsPos(pos)} onBack={null}/>
+        onBack={null}/>
       {toast && <Toast msg={toast} onDone={()=>setToast('')}/>}
     </div>
   );
@@ -454,7 +688,7 @@ function App() {
 
       {screen==='admin' && (
         <AdminView drivers={drivers} meetups={meetups} orders={orders}
-          getRoute={getRoute} getDone={getDone} startPos={startPos}
+          pendingFor={pendingFor} getDone={getDone} depotFor={depotFor}
           getMeetupOrders={getMeetupOrders} getMeetupDone={getMeetupDone}
           addDriver={addDriver} removeDriver={removeDriver} updateDriver={updateDriver}
           addMeetup={addMeetup} removeMeetup={removeMeetup} updateMeetup={updateMeetup}
@@ -472,10 +706,11 @@ function App() {
         <SelectDriver drivers={drivers} orders={orders} onSelect={id=>setScreen(`driver-${id}`)}/>
       )}
       {isDriverScreen && curDriver && (
-        <DriverView driver={{...curDriver,id:driverId}} route={getRoute(driverId)} done={getDone(driverId)}
-          sp={startPos(driverId)}
+        <DriverView driver={{...curDriver,id:driverId}}
+          pending={pendingFor(driverId)} done={getDone(driverId)}
+          depot={depotFor(driverId)}
           onDone={(id,amt)=>updateOrder(id,{status:'done',amount:amt??null,deliveredAt:Date.now()})}
-          onGpsUpdate={pos=>setGpsPos(pos)} onBack={()=>setScreen('driver-select')}/>
+          onBack={()=>setScreen('driver-select')}/>
       )}
       {toast && <Toast msg={toast} onDone={()=>setToast('')}/>}
     </div>
@@ -485,11 +720,12 @@ function App() {
 // ══════════════════════════════════════════════════════════
 // ADMIN VIEW
 // ══════════════════════════════════════════════════════════
-function AdminView({ drivers, meetups, orders, getRoute, getDone, startPos, getMeetupOrders, getMeetupDone, addDriver, removeDriver, updateDriver, addMeetup, removeMeetup, updateMeetup, updateOrder, deleteOrder, resetAll, onToast }) {
+function AdminView({ drivers, meetups, orders, pendingFor, getDone, depotFor, getMeetupOrders, getMeetupDone, addDriver, removeDriver, updateDriver, addMeetup, removeMeetup, updateMeetup, updateOrder, deleteOrder, resetAll, onToast }) {
   const [newName, setNewName] = useState('');
   const [newMeetupName, setNewMeetupName] = useState('');
-  const [form, setForm] = useState({client:'',address:'',driverId:'',meetupId:'',note:''});
+  const [form, setForm] = useState({client:'',address:'',meetupId:'',note:''});
   const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState('');
   const [err, setErr] = useState('');
 
   async function handleAdd() {
@@ -498,24 +734,103 @@ function AdminView({ drivers, meetups, orders, getRoute, getDone, startPos, getM
     if (!isMeetup && !form.address.trim()) return;
     setLoading(true); setErr('');
     const ts = Date.now();
-    const order = {
-      client:form.client.trim(), address:form.address.trim(), note:form.note.trim(),
-      driverId:form.driverId||null, meetupId:form.meetupId||null,
-      addedAt:ts, deadline:ts+DEADLINE_MS,
-      status:'pending', lat:null, lng:null, displayName:null
-    };
-    const pushed = await dbPush('orders', order);
-    setForm({client:'',address:'',driverId:'',meetupId:'',note:''});
-    if (!isMeetup && form.address.trim()) {
-      try {
-        const geo = await geocodeAddress(form.address.trim());
-        await updateOrder(pushed.key, {lat:geo.lat, lng:geo.lng, displayName:geo.displayName});
-      } catch(e) { setErr('GPS non trouvé — commande ajoutée quand même'); }
+
+    // Pour les meetups : pas de géocodage, pas d'affectation auto
+    if (isMeetup) {
+      const order = {
+        client: form.client.trim(), address: '', note: form.note.trim(),
+        driverId: null, meetupId: form.meetupId,
+        addedAt: ts, deadline: ts + DEADLINE_MS,
+        status: 'pending', lat: null, lng: null, displayName: null
+      };
+      await dbPush('orders', order);
+      setForm({client:'',address:'',meetupId:'',note:''});
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    // Livraison à domicile : géocodage puis affectation auto
+    setLoadingMsg('📍 Localisation GPS…');
+    let geo = null;
+    try {
+      geo = await geocodeAddress(form.address.trim());
+    } catch(e) {
+      setErr('GPS non trouvé — vérifie l\'adresse ou ajoute la ville');
+      setLoading(false); setLoadingMsg('');
+      return;
+    }
+
+    // Affectation auto : on cherche le livreur qui perd le moins de temps
+    let assignedDriverId = null;
+    const driverIds = Object.keys(drivers);
+    if (driverIds.length === 0) {
+      setErr('Aucun chauffeur — ajoute un chauffeur d\'abord');
+      setLoading(false); setLoadingMsg('');
+      return;
+    }
+
+    setLoadingMsg('🧠 Recherche du meilleur livreur…');
+    // Construire le dictionnaire commandes par livreur
+    const ordersByDriver = {};
+    for (const did of driverIds) {
+      ordersByDriver[did] = pendingFor(did);
+    }
+    const tempOrder = { ...form, lat: geo.lat, lng: geo.lng, id: '__temp__' };
+    try {
+      // findBestDriverForOrder a besoin du dépôt par livreur, on lui passe les drivers
+      // mais comme il appelle optimizeRouteOSRM qui prend le depot, on enrichit drivers avec leur depot
+      const driversWithDepot = {};
+      for (const did of driverIds) {
+        const dep = depotFor(did);
+        driversWithDepot[did] = { ...drivers[did], baseLat: dep.lat, baseLng: dep.lng };
+      }
+      assignedDriverId = await findBestDriverForOrder(tempOrder, driversWithDepot, ordersByDriver);
+    } catch(e) {
+      console.error('Affectation auto échouée', e);
+      assignedDriverId = driverIds[0]; // fallback : premier livreur
+    }
+
+    const order = {
+      client: form.client.trim(), address: form.address.trim(), note: form.note.trim(),
+      driverId: assignedDriverId, meetupId: null,
+      addedAt: ts, deadline: ts + DEADLINE_MS,
+      status: 'pending',
+      lat: geo.lat, lng: geo.lng, displayName: geo.displayName
+    };
+    await dbPush('orders', order);
+    setForm({client:'',address:'',meetupId:'',note:''});
+    setLoading(false); setLoadingMsg('');
+    if (assignedDriverId && drivers[assignedDriverId]) {
+      onToast(`✓ Attribué à ${drivers[assignedDriverId].name}`);
+    }
   }
 
-  const unassigned = Object.entries(orders).filter(([,o])=>!o.driverId&&o.status!=='done');
+  // Réassigner une commande au meilleur livreur (bouton "auto" sur une commande)
+  async function reassignAuto(orderId) {
+    const o = orders[orderId];
+    if (!o || !o.lat || !o.lng) { onToast('❌ Pas de coordonnées GPS'); return; }
+    const driverIds = Object.keys(drivers);
+    if (driverIds.length === 0) return;
+    const ordersByDriver = {};
+    for (const did of driverIds) {
+      // On exclut la commande elle-même pour ne pas fausser le calcul du livreur actuel
+      ordersByDriver[did] = pendingFor(did).filter(x => x.id !== orderId);
+    }
+    const driversWithDepot = {};
+    for (const did of driverIds) {
+      const dep = depotFor(did);
+      driversWithDepot[did] = { ...drivers[did], baseLat: dep.lat, baseLng: dep.lng };
+    }
+    const best = await findBestDriverForOrder(o, driversWithDepot, ordersByDriver);
+    if (best && best !== o.driverId) {
+      await updateOrder(orderId, { driverId: best });
+      onToast(`✓ Réattribué à ${drivers[best].name}`);
+    } else {
+      onToast('✓ Déjà chez le meilleur livreur');
+    }
+  }
+
+  const unassigned = Object.entries(orders).filter(([,o])=>!o.driverId&&!o.meetupId&&o.status!=='done');
 
   return (
     <div className="content">
@@ -531,27 +846,21 @@ function AdminView({ drivers, meetups, orders, getRoute, getDone, startPos, getM
           <div className="fld">
             <label className="fld-lbl">Type</label>
             <select className="inp" value={form.meetupId ? 'meetup' : 'delivery'}
-              onChange={e=>{ if(e.target.value==='delivery') setForm(f=>({...f,meetupId:''})); else setForm(f=>({...f,driverId:'',address:''})); }}>
-              <option value="delivery">🛵 Livraison à domicile</option>
+              onChange={e=>{ if(e.target.value==='delivery') setForm(f=>({...f,meetupId:''})); else setForm(f=>({...f,address:''})); }}>
+              <option value="delivery">🛵 Livraison à domicile (attribution auto)</option>
               <option value="meetup">📍 Meet up (sur place)</option>
             </select>
           </div>
           {!form.meetupId ? (
-            <>
-              <div className="fld">
-                <label className="fld-lbl">Adresse de livraison</label>
-                <input className="inp" placeholder="Ex : 14 rue de la Paix, Lyon" value={form.address}
-                  onChange={e=>setForm(f=>({...f,address:e.target.value}))}
-                  onKeyDown={e=>e.key==='Enter'&&handleAdd()}/>
+            <div className="fld">
+              <label className="fld-lbl">Adresse de livraison</label>
+              <input className="inp" placeholder="Ex : 14 rue de la Paix, Belfort" value={form.address}
+                onChange={e=>setForm(f=>({...f,address:e.target.value}))}
+                onKeyDown={e=>e.key==='Enter'&&handleAdd()}/>
+              <div style={{fontSize:10,color:'var(--muted)',marginTop:5,fontStyle:'italic'}}>
+                🧠 L'algorithme attribuera au livreur qui perdra le moins de temps
               </div>
-              <div className="fld">
-                <label className="fld-lbl">Chauffeur</label>
-                <select className="inp" value={form.driverId} onChange={e=>setForm(f=>({...f,driverId:e.target.value}))}>
-                  <option value="">— Non assigné</option>
-                  {Object.entries(drivers).map(([id,d])=><option key={id} value={id}>{d.name}</option>)}
-                </select>
-              </div>
-            </>
+            </div>
           ) : (
             <div className="fld">
               <label className="fld-lbl">Point Meet up</label>
@@ -568,10 +877,10 @@ function AdminView({ drivers, meetups, orders, getRoute, getDone, startPos, getM
               onChange={e=>setForm(f=>({...f,note:e.target.value}))}
               style={{resize:'none',lineHeight:'1.5'}}/>
           </div>
-          {loading && <div className="geocoding-row"><span className="spin"/> Localisation GPS…</div>}
+          {loading && <div className="geocoding-row"><span className="spin"/> {loadingMsg}</div>}
           {err && <div className="err">⚠ {err}</div>}
           <button className="btn-main" onClick={handleAdd}
-            disabled={!form.client.trim()||((!form.meetupId&&!form.address.trim()))||(form.meetupId===''&&!form.driverId&&!form.meetupId)||loading}>
+            disabled={!form.client.trim()||((!form.meetupId&&!form.address.trim())||(form.meetupId===''&&Object.keys(drivers).length===0))||loading}>
             + Ajouter la commande
           </button>
         </div>
@@ -628,9 +937,7 @@ function AdminView({ drivers, meetups, orders, getRoute, getDone, startPos, getM
                 <button className="btn-sm" style={{color:'#06D6A0'}} onClick={()=>{navigator.clipboard.writeText(link);onToast('🔗 Lien copié !');}}>🔗 Lien</button>
                 <button className="btn-sm btn-del" onClick={()=>removeMeetup(id)}>✕</button>
               </div>
-              {/* Stock meet up */}
               <MeetupStockRow meetup={{...m,id}} onUpdate={updateMeetup}/>
-              {/* Clients en attente au meet up */}
               {getMeetupOrders(id).map(o=>(
                 <div className="order-row" key={o.id} style={{background: o.status==='arrived'?'#001830':''}}>
                   <div className="o-num" style={{color: o.status==='arrived'?'#4FC3F7':'var(--accent)'}}>
@@ -646,7 +953,6 @@ function AdminView({ drivers, meetups, orders, getRoute, getDone, startPos, getM
                       <button className="btn-sm" style={{color:'#4FC3F7',whiteSpace:'nowrap'}}
                         onClick={()=>{
                           updateOrder(o.id,{status:'arrived'});
-                          // Notification au meet up person
                           if(Notification.permission==='granted')
                             new Notification('📍 Client arrivé !',{body:`${o.client} est sur place`});
                         }}>Client arrivé</button>
@@ -657,7 +963,6 @@ function AdminView({ drivers, meetups, orders, getRoute, getDone, startPos, getM
                   </div>
                 </div>
               ))}
-              {/* Livrés au meet up */}
               {getMeetupDone(id).map(o=>(
                 <div className="order-row" key={o.id} style={{opacity:.4}}>
                   <div className="o-num" style={{color:'var(--ok)'}}>✓</div>
@@ -691,6 +996,7 @@ function AdminView({ drivers, meetups, orders, getRoute, getDone, startPos, getM
                 <div className="u-addr">{o.address}</div>
               </div>
               <div style={{display:'flex',gap:6}}>
+                <button className="btn-sm" style={{color:'var(--accent)'}} onClick={()=>reassignAuto(id)}>🧠 Auto</button>
                 <select className="btn-sm" style={{color:'var(--accent)'}} value=""
                   onChange={e=>{if(e.target.value)updateOrder(id,{driverId:e.target.value});}}>
                   <option value="">Assigner →</option>
@@ -705,14 +1011,12 @@ function AdminView({ drivers, meetups, orders, getRoute, getDone, startPos, getM
 
       {Object.entries(drivers).map(([id,d])=>(
         <AdminDriverCard key={id} driver={{...d,id}}
-          route={getRoute(id)} doneOrders={getDone(id)} sp={startPos(id)}
-          allDrivers={drivers} updateOrder={updateOrder} deleteOrder={deleteOrder}/>
+          pending={pendingFor(id)} doneOrders={getDone(id)} depot={depotFor(id)}
+          allDrivers={drivers} updateOrder={updateOrder} deleteOrder={deleteOrder}
+          onReassignAuto={reassignAuto}/>
       ))}
 
-      {/* RESET JOURNÉE */}
-      {Object.keys(orders).length > 0 && (
-        <ResetButton onReset={resetAll}/>
-      )}
+      {Object.keys(orders).length > 0 && <ResetButton onReset={resetAll}/>}
 
       <div style={{height:20}}/>
     </div>
@@ -720,8 +1024,9 @@ function AdminView({ drivers, meetups, orders, getRoute, getDone, startPos, getM
 }
 
 // ── Admin Driver Card ────────────────────────────────────────
-function AdminDriverCard({ driver, route, doneOrders, sp, allDrivers, updateOrder, deleteOrder }) {
-  const etas  = useETAs(route, sp);
+function AdminDriverCard({ driver, pending, doneOrders, depot, allDrivers, updateOrder, deleteOrder, onReassignAuto }) {
+  const { ordered: route, totalDurationSec, osrmFailed, loading } = useOptimizedRoute(pending, depot);
+  const etas  = useETAs(route, depot);
   const total = doneOrders.reduce((s,o) => s + (parseFloat(o.amount)||0), 0);
 
   return (
@@ -731,6 +1036,11 @@ function AdminDriverCard({ driver, route, doneOrders, sp, allDrivers, updateOrde
         <span className="route-hdr-name">{driver.name}</span>
         <span className="route-hdr-n">{route.length} à livrer{doneOrders.length>0?` · ${doneOrders.length} ✓`:''}</span>
       </div>
+      {loading && <div className="optim-banner"><span className="spin"/> Calcul de la tournée optimale…</div>}
+      {osrmFailed && !loading && <div className="optim-banner" style={{background:'#2a0b12',borderColor:'var(--crit)',color:'var(--crit)'}}>⚠ OSRM indisponible — ordre estimé (vol d'oiseau)</div>}
+      {!loading && route.length > 1 && (
+        <div className="route-duration">🕐 Tournée totale : ~{fmtDuration(totalDurationSec)} (aller-retour dépôt)</div>
+      )}
       {total > 0 && <div className="route-total">💰 Encaissé aujourd'hui : {fmtEuro(total)}</div>}
       {driver.stock > 0 && (
         <div style={{display:'flex',gap:0,borderBottom:'1px solid var(--border)'}}>
@@ -773,6 +1083,7 @@ function AdminDriverCard({ driver, route, doneOrders, sp, allDrivers, updateOrde
                 const link = `${window.location.href.split('#')[0]}#track-${o.id}`;
                 navigator.clipboard.writeText(link);
               }}>🔗 Client</button>
+              <button className="btn-sm" style={{color:'var(--accent)'}} onClick={()=>onReassignAuto(o.id)} title="Réattribuer au meilleur livreur">🧠 Auto</button>
               <select className="btn-sm" value={driver.id}
                 onChange={e=>updateOrder(o.id,{driverId:e.target.value||null})} style={{fontSize:'9px'}}>
                 {Object.entries(allDrivers).map(([did,dr])=><option key={did} value={did}>{dr.name}</option>)}
@@ -796,7 +1107,7 @@ function AdminDriverCard({ driver, route, doneOrders, sp, allDrivers, updateOrde
   );
 }
 
-// ── Done Order Row (admin + driver) ─────────────────────────
+// ── Done Order Row ──────────────────────────────────────────
 function DoneOrderRow({ order: o, onUpdate, onDelete, compact=false }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState('');
@@ -809,7 +1120,6 @@ function DoneOrderRow({ order: o, onUpdate, onDelete, compact=false }) {
   }
 
   if (compact) {
-    // Vue livreur — commandes déjà livrées
     return (
       <div className="dv-order done">
         <div className="dv-order-top">
@@ -847,7 +1157,6 @@ function DoneOrderRow({ order: o, onUpdate, onDelete, compact=false }) {
     );
   }
 
-  // Vue admin
   return (
     <div className="order-row" style={{opacity:.5}}>
       <div className="o-num" style={{color:'var(--ok)'}}>✓</div>
@@ -919,6 +1228,9 @@ function DriverBaseRow({ driver, onUpdate }) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
 
+  // Affiche "défaut" si le chauffeur utilise le dépôt par défaut
+  const isDefault = driver.baseAddress === DEFAULT_DEPOT.address;
+
   async function saveAddr() {
     if (!addrVal.trim()) return;
     setLoading(true); setErr('');
@@ -930,6 +1242,14 @@ function DriverBaseRow({ driver, onUpdate }) {
     finally { setLoading(false); }
   }
 
+  async function resetToDefault() {
+    await onUpdate(driver.id, {
+      baseAddress: DEFAULT_DEPOT.address,
+      baseLat: DEFAULT_DEPOT.lat,
+      baseLng: DEFAULT_DEPOT.lng
+    });
+  }
+
   async function saveStock() {
     const v = parseFloat(stockVal.replace(',','.'));
     await onUpdate(driver.id, {stock: isNaN(v) ? null : v});
@@ -938,16 +1258,18 @@ function DriverBaseRow({ driver, onUpdate }) {
 
   return (
     <div style={{borderBottom:'1px solid var(--border)'}}>
-      {/* Adresse de départ */}
       <div style={{padding:'6px 14px 6px'}}>
         {!editingAddr ? (
-          <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
             <span style={{fontSize:11,color:driver.baseLat?'var(--ok)':'var(--muted)'}}>
-              {driver.baseLat ? `📍 ${driver.baseAddress}` : '📍 Aucun point de départ'}
+              {driver.baseLat ? `📍 ${driver.baseAddress}${isDefault?' (dépôt par défaut)':''}` : '📍 Aucun point de départ'}
             </span>
             <button className="btn-sm" onClick={()=>{setAddrVal(driver.baseAddress||'');setEditingAddr(true);}}>
               {driver.baseLat?'Modifier':'+ Définir'}
             </button>
+            {!isDefault && driver.baseLat && (
+              <button className="btn-sm" onClick={resetToDefault} title="Revenir au dépôt par défaut">↺ Défaut</button>
+            )}
           </div>
         ) : (
           <div style={{display:'flex',flexDirection:'column',gap:6}}>
@@ -963,7 +1285,6 @@ function DriverBaseRow({ driver, onUpdate }) {
           </div>
         )}
       </div>
-      {/* Stock de départ */}
       <div style={{padding:'0 14px 8px'}}>
         {!editingStock ? (
           <div style={{display:'flex',alignItems:'center',gap:8}}>
@@ -1016,33 +1337,27 @@ function SelectDriver({ drivers, orders, onSelect }) {
 // ══════════════════════════════════════════════════════════
 // DRIVER VIEW
 // ══════════════════════════════════════════════════════════
-function DriverView({ driver, route, done, sp, onDone, onBack, onGpsUpdate }) {
-  const { useRef } = React;
+function DriverView({ driver, pending, done, depot, onDone, onBack }) {
+  const { ordered: route, totalDurationSec, osrmFailed, loading } = useOptimizedRoute(pending, depot);
+  const etas = useETAs(route, depot);
   const [time, setTime] = useState(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
   const [pendingId, setPending] = useState(null);
   const [amtVal, setAmtVal]     = useState('');
   const [etaOpenId, setEtaOpen] = useState(null);
   const [etaInputVal, setEtaInputVal] = useState('');
-  const [gpsActive, setGpsActive] = useState(false);
-  const [gpsErr, setGpsErr]       = useState('');
-  const watchId = useRef(null);
   const prevRouteLen = useRef(route.length);
-  const etas = useETAs(route, sp);
 
-  // Horloge
   useEffect(()=>{
     const t = setInterval(()=>setTime(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})),30000);
     return ()=>clearInterval(t);
   },[]);
 
-  // Notifications — demande permission au chargement
   useEffect(()=>{
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
   },[]);
 
-  // Notification quand nouvelle commande assignée
   useEffect(()=>{
     if (route.length > prevRouteLen.current) {
       const newest = route[route.length - 1];
@@ -1055,24 +1370,6 @@ function DriverView({ driver, route, done, sp, onDone, onBack, onGpsUpdate }) {
     }
     prevRouteLen.current = route.length;
   },[route.length]);
-
-  // GPS — activer/désactiver
-  function toggleGps() {
-    if (gpsActive) {
-      if (watchId.current) navigator.geolocation.clearWatch(watchId.current);
-      setGpsActive(false); setGpsErr('');
-      onGpsUpdate(null);
-    } else {
-      if (!navigator.geolocation) { setGpsErr('GPS non disponible sur cet appareil'); return; }
-      setGpsErr('');
-      watchId.current = navigator.geolocation.watchPosition(
-        pos => { onGpsUpdate({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setGpsActive(true); },
-        err => { setGpsErr('Localisation refusée ou indisponible'); setGpsActive(false); },
-        { enableHighAccuracy: true, maximumAge: 15000 }
-      );
-    }
-  }
-  useEffect(() => () => { if (watchId.current) navigator.geolocation.clearWatch(watchId.current); }, []);
 
   function handleLivre(id) { setPending(id); setAmtVal(''); }
   function confirm() { onDone(pendingId, amtVal!==''?parseFloat(amtVal.replace(',','.')):null); setPending(null); }
@@ -1094,25 +1391,28 @@ function DriverView({ driver, route, done, sp, onDone, onBack, onGpsUpdate }) {
         {onBack && <button className="dv-back" onClick={onBack}>← Changer</button>}
       </div>
 
-      {/* BOUTON GPS */}
-      <button onClick={toggleGps} style={{
-        width:'100%', marginBottom:10, padding:'9px',
-        background: gpsActive ? '#001830' : 'var(--s2)',
-        border: `1.5px solid ${gpsActive ? '#4FC3F7' : 'var(--border)'}`,
-        color: gpsActive ? '#4FC3F7' : 'var(--muted)',
-        borderRadius:10, fontFamily:'inherit', fontSize:12, fontWeight:700, cursor:'pointer',
-        display:'flex', alignItems:'center', justifyContent:'center', gap:8
-      }}>
-        {gpsActive ? '📍 GPS actif — position en direct' : '📍 Activer ma localisation GPS (optionnel)'}
-      </button>
-      {gpsErr && <div style={{fontSize:11,color:'var(--crit)',marginBottom:8,textAlign:'center'}}>{gpsErr}</div>}
+      {loading && (
+        <div style={{background:'#001830',border:'1px solid #4FC3F7',color:'#4FC3F7',borderRadius:10,padding:'10px 14px',marginBottom:10,textAlign:'center',fontSize:12,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+          <span className="spin"/> Calcul de ta tournée optimale…
+        </div>
+      )}
+      {osrmFailed && !loading && (
+        <div style={{background:'#2a0b12',border:'1px solid var(--crit)',color:'var(--crit)',borderRadius:10,padding:'10px 14px',marginBottom:10,textAlign:'center',fontSize:12,fontWeight:700}}>
+          ⚠ OSRM indisponible — ordre estimé (à vol d'oiseau). Vérifie l'ordre avant de partir.
+        </div>
+      )}
 
       <div className="dv-clock">
         <div><div className="dv-clock-lbl">Heure</div><div>{time}</div></div>
         <div style={{textAlign:'right'}}><div className="dv-clock-lbl">Restantes</div><div>{route.length}</div></div>
       </div>
 
-      {/* TABLEAU DE BORD STOCK */}
+      {!loading && route.length > 1 && (
+        <div style={{background:'#001830',border:'1px solid #003a5a',borderRadius:10,padding:'8px 14px',marginBottom:10,textAlign:'center',fontSize:12,color:'#4FC3F7',fontWeight:700}}>
+          🕐 Tournée totale : ~{fmtDuration(totalDurationSec)} (retour dépôt inclus)
+        </div>
+      )}
+
       {(driver.stock > 0 || totalDone > 0) && (
         <div style={{background:'#0a1a0e',border:'1px solid #0f3d25',borderRadius:12,padding:14,marginBottom:14}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:10}}>Bilan journée</div>
@@ -1162,7 +1462,6 @@ function DriverView({ driver, route, done, sp, onDone, onBack, onGpsUpdate }) {
                       <a className="dv-maps" href={wazeUrl(o)} target="_blank">🚗 Waze</a>
                       <button className="dv-done" onClick={()=>handleLivre(o.id)}>✓ Livré</button>
                     </div>
-                    {/* Bouton ETA Waze — saisir l'heure affichée par Waze */}
                     {etaOpenId !== o.id ? (
                       <button onClick={()=>openEta(o.id)} style={{
                         marginTop:6, background:'transparent', border:'1px solid #003a5a',
@@ -1179,7 +1478,6 @@ function DriverView({ driver, route, done, sp, onDone, onBack, onGpsUpdate }) {
                             inputMode="numeric"
                             maxLength={5}
                             onChange={e=>{
-                              // Auto-format: insert colon after 2 digits
                               let raw = e.target.value.replace(/\D/g,'').slice(0,4);
                               let fmt = raw.length > 2 ? raw.slice(0,2) + ':' + raw.slice(2) : raw;
                               setEtaInputVal(fmt);
@@ -1254,27 +1552,25 @@ function DriverView({ driver, route, done, sp, onDone, onBack, onGpsUpdate }) {
 }
 
 // ══════════════════════════════════════════════════════════
-// CUSTOMER VIEW — page de suivi client
+// CUSTOMER VIEW
 // ══════════════════════════════════════════════════════════
-function CustomerView({ order, route, sp }) {
-  const etas = useETAs(route, sp);
+function CustomerView({ order, pendingForDriver, depot }) {
+  const { ordered: route } = useOptimizedRoute(pendingForDriver, depot);
+  const etas = useETAs(route, depot);
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const t = setInterval(()=>setNow(Date.now()), 30000); return ()=>clearInterval(t); }, []);
 
   const pos  = route.findIndex(o => o.id === order.id);
   const calcEta = pos >= 0 ? etas[pos] : null;
-  // ETA confirmée par le livreur > ETA calculée
   const eta = order.driverEta || calcEta;
   const etaIsConfirmed = !!order.driverEta;
   const isDone = order.status === 'done';
 
-  // Texte position
   const posLabel = pos === 0 ? 'Prochaine livraison' :
                    pos === 1 ? '2ème sur la liste' :
                    pos === 2 ? '3ème sur la liste' :
                    pos > 2   ? `${pos+1}ème sur la liste` : null;
 
-  // Temps restant avant ETA
   const etaWait = eta ? eta - now : null;
   const etaWaitTxt = etaWait != null
     ? etaWait <= 0 ? 'Imminent !'
@@ -1282,14 +1578,8 @@ function CustomerView({ order, route, sp }) {
     : (() => { const h=Math.floor(etaWait/3600000), m=Math.floor((etaWait%3600000)/60000); return h>0?`${h}h${String(m).padStart(2,'0')}`:`${m} min`; })()
     : null;
 
-  const MAX_WAIT_MS = 3.5 * 60 * 60 * 1000;
-  const waitFromOrder = eta ? eta - order.addedAt : now - order.addedAt;
-  const tooLong = waitFromOrder > MAX_WAIT_MS;
-
   return (
     <div style={{padding:20, display:'flex', flexDirection:'column', gap:16, maxWidth:400, margin:'0 auto'}}>
-
-      {/* STATUT PRINCIPAL */}
       {isDone ? (
         <div style={{background:'#0a2a1a',border:'2px solid var(--ok)',borderRadius:16,padding:24,textAlign:'center'}}>
           <div style={{fontSize:48,marginBottom:8}}>✅</div>
@@ -1307,7 +1597,6 @@ function CustomerView({ order, route, sp }) {
           <div style={{fontSize:40,marginBottom:8}}>🛵</div>
           <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>En route !</div>
           {posLabel && <div style={{display:'inline-block',background:'#2a1400',color:'var(--accent)',borderRadius:20,padding:'4px 14px',fontSize:13,fontWeight:700,marginBottom:12}}>{posLabel}</div>}
-
           {eta ? (
             <div style={{background:'#001830',border:`1px solid ${etaIsConfirmed?'#4FC3F7':'#003a5a'}`,borderRadius:12,padding:16,marginTop:8}}>
               <div style={{fontSize:11,color:'var(--muted)',fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:4}}>
@@ -1321,12 +1610,9 @@ function CustomerView({ order, route, sp }) {
               <span className="spin" style={{marginRight:6}}/> Calcul en cours…
             </div>
           )}
-
-          {/* Priorité gérée automatiquement par l'algorithme */}
         </div>
       )}
 
-      {/* INFOS COMMANDE */}
       <div style={{background:'var(--s1)',border:'1px solid var(--border)',borderRadius:14,padding:16}}>
         <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:12}}>Votre commande</div>
         <div style={{fontWeight:700,fontSize:16,marginBottom:4}}>{order.client}</div>
@@ -1341,7 +1627,6 @@ function CustomerView({ order, route, sp }) {
         </div>
       </div>
 
-      {/* BARRE DE PROGRESSION */}
       {!isDone && pos >= 0 && (
         <div style={{background:'var(--s1)',border:'1px solid var(--border)',borderRadius:14,padding:16}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:10}}>Progression</div>
@@ -1361,7 +1646,6 @@ function CustomerView({ order, route, sp }) {
           </div>
         </div>
       )}
-
     </div>
   );
 }
@@ -1401,20 +1685,19 @@ function MeetupStockRow({ meetup, onUpdate }) {
 }
 
 // ══════════════════════════════════════════════════════════
-// MEETUP VIEW — vue de la personne sur place
+// MEETUP VIEW
 // ══════════════════════════════════════════════════════════
 function MeetupView({ meetup, pending, done, onDone, onBack }) {
   const [time, setTime] = useState(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
   const [pendingId, setPending] = useState(null);
   const [amtVal, setAmtVal] = useState('');
-  const prevArrivedCount = React.useRef(pending.filter(o=>o.status==='arrived').length);
+  const prevArrivedCount = useRef(pending.filter(o=>o.status==='arrived').length);
 
   useEffect(()=>{
     const t = setInterval(()=>setTime(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})),30000);
     return ()=>clearInterval(t);
   },[]);
 
-  // Notification quand nouveau client marqué "arrivé" par l'admin
   useEffect(()=>{
     if('Notification' in window && Notification.permission==='default') Notification.requestPermission();
   },[]);
@@ -1450,7 +1733,6 @@ function MeetupView({ meetup, pending, done, onDone, onBack }) {
         <div style={{textAlign:'right'}}><div className="dv-clock-lbl">En attente</div><div>{waiting.length}</div></div>
       </div>
 
-      {/* BILAN STOCK */}
       {(meetup.stock>0||totalDone>0) && (
         <div style={{background:'#0a1a0e',border:'1px solid #0f3d25',borderRadius:12,padding:14,marginBottom:14}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:10}}>Bilan journée</div>
@@ -1478,7 +1760,6 @@ function MeetupView({ meetup, pending, done, onDone, onBack }) {
       {pending.length===0&&done.length===0 && <div className="empty-txt">Aucun client pour le moment 👍</div>}
       {pending.length===0&&done.length>0 && <div className="empty-txt" style={{color:'var(--ok)'}}>🎉 Tous les clients ont été servis !</div>}
 
-      {/* CLIENTS ARRIVÉS — à traiter en priorité */}
       {arrived.map(o=>{
         const isPending = pendingId===o.id;
         return (
@@ -1515,7 +1796,6 @@ function MeetupView({ meetup, pending, done, onDone, onBack }) {
         );
       })}
 
-      {/* CLIENTS EN ATTENTE */}
       {waiting.length>0 && (
         <>
           {arrived.length>0 && <div style={{margin:'12px 0 6px',fontSize:10,color:'var(--muted)',letterSpacing:'2px',textTransform:'uppercase',fontWeight:700,textAlign:'center'}}>En attente</div>}
@@ -1537,7 +1817,6 @@ function MeetupView({ meetup, pending, done, onDone, onBack }) {
         </>
       )}
 
-      {/* CLIENTS SERVIS */}
       {done.length>0 && <>
         <div style={{margin:'16px 0 8px',fontSize:10,color:'var(--muted)',letterSpacing:'2px',textTransform:'uppercase',fontWeight:700,textAlign:'center'}}>✓ Déjà servis</div>
         {done.map(o=>(
