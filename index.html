@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
@@ -10,6 +9,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getDatabase, ref, set, push, onValue, update, remove }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
   const firebaseConfig = {
     apiKey:            "AIzaSyBxVLrwAU42buR1iFZ7a_v9ERKfEfaVLsI",
     authDomain:        "livraison-labo.firebaseapp.com",
@@ -19,18 +19,23 @@
     messagingSenderId: "531263927057",
     appId:             "1:531263927057:web:e5530cf0f34f642318d2b0"
   };
+
   const app = initializeApp(firebaseConfig);
   const db  = getDatabase(app);
-  window._db=db; window._dbRef=ref; window._dbSet=set; window._dbPush=push;
-  window._dbOn=onValue; window._dbUpd=update; window._dbRem=remove;
-  window._firebaseReady=true;
+
+  window._db = db;
+  window._dbRef = ref;
+  window._dbSet = set;
+  window._dbPush = push;
+  window._dbOn = onValue;
+  window._dbUpd = update;
+  window._dbRem = remove;
+  window._firebaseReady = true;
   window.dispatchEvent(new Event('firebaseReady'));
 </script>
 
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
 <style>
@@ -38,8 +43,8 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#0A0A0A;--s1:#111;--s2:#1A1A1A;--border:#252525;
-  --accent:#FF6B00;--text:#EFEFEF;--muted:#555;
-  --ok:#06D6A0;--warn:#FFD60A;--crit:#FF4D6D;
+  --accent:#FF6B00;--text:#EFEFEF;--muted:#666;
+  --ok:#06D6A0;--warn:#FFD60A;--crit:#FF4D6D;--blue:#4FC3F7;
 }
 body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;-webkit-font-smoothing:antialiased}
 .app{min-height:100vh;max-width:480px;margin:0 auto}
@@ -65,23 +70,23 @@ select.inp option{background:#1a1a1a}
 .btn-sm:hover{border-color:var(--accent);color:var(--accent)}
 .btn-del{color:var(--crit)}
 .btn-del:hover{border-color:var(--crit)}
-.geocoding-row{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px;color:var(--muted)}
-.spin{width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
-@keyframes spin{to{transform:rotate(360deg)}}
-.err{color:var(--crit);font-size:12px;padding:4px 0}
-.driver-row{display:flex;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);gap:10px}
-.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-.driver-row-name{flex:1;font-weight:600;font-size:14px}
-.driver-row-n{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);margin-right:6px}
 .add-row{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--border)}
 .add-inp{flex:1;background:var(--s2);border:1.5px solid var(--border);color:var(--text);border-radius:8px;padding:8px 11px;font-size:14px;font-family:inherit;outline:none}
 .add-inp:focus{border-color:var(--accent)}
 .btn-add{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.geocoding-row{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px;color:var(--muted)}
+.spin{width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err{color:var(--crit);font-size:12px;padding:4px 0}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.driver-row{display:flex;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);gap:10px}
+.driver-row-name{flex:1;font-weight:600;font-size:14px}
+.driver-row-n{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);margin-right:6px}
 .route-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s2);border-bottom:1px solid var(--border)}
 .route-hdr-name{flex:1;font-weight:700;font-size:14px}
 .route-hdr-n{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)}
 .route-total{font-family:'Space Mono',monospace;font-size:11px;color:var(--ok);font-weight:700;padding:5px 14px;background:#0a1a0e;border-bottom:1px solid var(--border)}
-.route-duration{font-family:'Space Mono',monospace;font-size:11px;color:#4FC3F7;font-weight:700;padding:5px 14px;background:#001830;border-bottom:1px solid var(--border)}
+.route-duration{font-family:'Space Mono',monospace;font-size:11px;color:var(--blue);font-weight:700;padding:5px 14px;background:#001830;border-bottom:1px solid var(--border)}
 .order-row{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}
 .order-row:last-child{border-bottom:none}
 .o-num{font-family:'Space Mono',monospace;font-size:16px;font-weight:700;color:var(--accent);min-width:20px;padding-top:2px}
@@ -95,12 +100,10 @@ select.inp option{background:#1a1a1a}
 .b-warn{background:#2a240b;color:var(--warn)}
 .b-critical{background:#2a0b12;color:var(--crit)}
 .b-late{background:var(--crit);color:#fff;animation:blink 1s ease-in-out infinite}
-.b-eta{background:#001830;color:#4FC3F7}
-.b-osrm-fail{background:#2a0b12;color:var(--crit);animation:blink 2s ease-in-out infinite}
+.b-eta{background:#001830;color:var(--blue)}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
 .o-actions{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
 .unassigned-row{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border)}
-.unassigned-row:last-child{border-bottom:none}
 .u-info{flex:1;min-width:0}
 .u-client{font-weight:600;font-size:13px}
 .u-addr{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -118,7 +121,7 @@ select.inp option{background:#1a1a1a}
 .dv-client{font-size:17px;font-weight:700;margin-bottom:3px}
 .dv-addr{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:8px}
 .dv-btns{display:flex;gap:8px}
-.dv-maps{display:inline-flex;align-items:center;gap:6px;background:#001e30;color:#4FC3F7;border:1px solid #003a5a;border-radius:8px;padding:9px 14px;font-weight:800;font-size:13px;text-decoration:none;flex:1;justify-content:center}
+.dv-maps{display:inline-flex;align-items:center;gap:6px;background:#001e30;color:var(--blue);border:1px solid #003a5a;border-radius:8px;padding:9px 14px;font-weight:800;font-size:13px;text-decoration:none;flex:1;justify-content:center}
 .dv-done{background:#0a2a1a;color:var(--ok);border:1px solid #0f3d25;border-radius:8px;padding:9px 14px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;flex:1}
 .dv-order-footer{background:var(--s2);border-top:1px solid var(--border);padding:8px 13px;display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
 .dv-added{font-size:10px;color:var(--muted)}
@@ -138,37 +141,41 @@ select.inp option{background:#1a1a1a}
 .empty-txt{padding:20px 14px;text-align:center;color:var(--muted);font-size:13px}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid var(--ok);color:var(--ok);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:999;animation:fadeup .3s ease}
 @keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-.optim-banner{background:#001830;border:1px solid #4FC3F7;color:#4FC3F7;font-size:11px;font-weight:700;padding:6px 14px;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px}
+.optim-banner{background:#001830;border:1px solid var(--blue);color:var(--blue);font-size:11px;font-weight:700;padding:6px 14px;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px}
+.alert-3h{margin:4px 0;padding:6px 8px;background:#2a0b12;border:1px solid var(--crit);border-radius:7px;color:var(--crit);font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase}
 </style>
-
 </head>
+
 <body>
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useEffect, useRef, useMemo } = React;
+const { useState, useEffect, useRef } = React;
 
-const PALETTE    = ['#FF6B00','#00C4FF','#06D6A0','#FFD60A','#C77DFF','#FF4D6D'];
+const PALETTE = ['#FF6B00','#00C4FF','#06D6A0','#FFD60A','#C77DFF','#FF4D6D'];
 const DEADLINE_MS = 3 * 60 * 60 * 1000;
-const STOP_MS     = 5 * 60 * 1000; // 5 min chez le client
+const STOP_SEC = 5 * 60;
 
-// ── Dépôt par défaut ────────────────────────────────────────
-// Adresse imposée pour tous les chauffeurs sans baseAddress défini.
-// Coordonnées vérifiées via Nominatim pour 14 rue Jules Massenet, 25200 Montbéliard.
 const DEFAULT_DEPOT = {
-  address: '14 rue Jules Massenet, 25200 Montbéliard',
+  address: '14 rue Jules Massenet, 25200 Montbeliard',
   lat: 47.5158,
   lng: 6.7889
 };
 
-// ════════════════════════════════════════════════════════════
-// MOTEUR D'OPTIMISATION — temps OSRM, 2-opt, retour au dépôt
-// ════════════════════════════════════════════════════════════
+// ============================================================
+// MOTEUR D'OPTIMISATION
+// Objectif : minimiser l'attente totale des clients pending.
+//
+// IMPORTANT :
+// - aucune priorite automatique aux anciens clients ;
+// - aucun detour volontaire pour un client ancien ;
+// - les clients +3h declenchent seulement une alerte visuelle admin ;
+// - l'ordre est recalcule depuis la position courante du livreur ;
+// - le retour depot n'est pas inclus dans l'optimisation.
+// ============================================================
 
-// Cache global des durées OSRM, keyé par paire de coordonnées arrondies
-// Évite de rappeler OSRM pour les mêmes paires de points.
 const OSRM_CACHE = new Map();
-const COORD_PRECISION = 5; // 5 décimales = ~1m de précision
+const COORD_PRECISION = 5;
 
 function coordKey(p) {
   return `${p.lat.toFixed(COORD_PRECISION)},${p.lng.toFixed(COORD_PRECISION)}`;
@@ -176,29 +183,23 @@ function coordKey(p) {
 function pairKey(a, b) {
   return `${coordKey(a)}|${coordKey(b)}`;
 }
-
-// Haversine — fallback uniquement si OSRM échoue
-function haversineKm(a, b) {
-  if (!a?.lat || !b?.lat) return Infinity;
-  const R = 6371, r = x => x * Math.PI / 180;
-  const dLat = r(b.lat-a.lat), dLng = r(b.lng-a.lng);
-  const aa = Math.sin(dLat/2)**2 + Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLng/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1-aa));
+function hasCoords(o) {
+  return o?.lat != null && o?.lng != null && !Number.isNaN(o.lat) && !Number.isNaN(o.lng);
 }
-// Estime un temps de fallback (50 km/h moyenne)
+function haversineKm(a, b) {
+  if (!hasCoords(a) || !hasCoords(b)) return Infinity;
+  const R = 6371, r = x => x * Math.PI / 180;
+  const dLat = r(b.lat - a.lat), dLng = r(b.lng - a.lng);
+  const aa = Math.sin(dLat/2)**2 + Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
+}
 function haversineFallbackSec(a, b) {
   return haversineKm(a, b) / 50 * 3600;
 }
-
-// Récupère la matrice de durées OSRM pour un set de points.
-// Un seul appel API pour N points (au lieu de N×N appels point-à-point).
-// Retourne { matrix: number[][], failed: boolean }
-// matrix[i][j] = secondes de i vers j (0 si i===j)
 async function getOSRMMatrix(points) {
   if (!points.length) return { matrix: [], failed: false };
   if (points.length === 1) return { matrix: [[0]], failed: false };
 
-  // Vérif cache : si toutes les paires sont déjà en cache, on évite l'appel
   let allCached = true;
   const cachedMatrix = points.map((_, i) =>
     points.map((_, j) => {
@@ -211,15 +212,14 @@ async function getOSRMMatrix(points) {
   );
   if (allCached) return { matrix: cachedMatrix, failed: false };
 
-  // Appel OSRM /table
   const coords = points.map(p => `${p.lng},${p.lat}`).join(';');
   const url = `https://router.project-osrm.org/table/v1/driving/${coords}?annotations=duration`;
-  try {
+
+  async function callOSRM() {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
     const data = await res.json();
     if (data.code !== 'Ok' || !data.durations) throw new Error('OSRM bad response');
-    // Mise en cache
     for (let i = 0; i < points.length; i++) {
       for (let j = 0; j < points.length; j++) {
         if (i !== j && data.durations[i][j] != null) {
@@ -228,24 +228,15 @@ async function getOSRMMatrix(points) {
       }
     }
     return { matrix: data.durations, failed: false };
-  } catch (e) {
-    // Retry une fois après 800 ms
+  }
+
+  try {
+    return await callOSRM();
+  } catch(e) {
     await new Promise(r => setTimeout(r, 800));
     try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
-      const data = await res.json();
-      if (data.code !== 'Ok' || !data.durations) throw new Error('OSRM bad response');
-      for (let i = 0; i < points.length; i++) {
-        for (let j = 0; j < points.length; j++) {
-          if (i !== j && data.durations[i][j] != null) {
-            OSRM_CACHE.set(pairKey(points[i], points[j]), data.durations[i][j]);
-          }
-        }
-      }
-      return { matrix: data.durations, failed: false };
-    } catch (e2) {
-      // Fallback haversine
+      return await callOSRM();
+    } catch(e2) {
       console.warn('OSRM indisponible, fallback haversine', e2);
       const mat = points.map((a, i) => points.map((b, j) => i === j ? 0 : haversineFallbackSec(a, b)));
       return { matrix: mat, failed: true };
@@ -253,224 +244,313 @@ async function getOSRMMatrix(points) {
   }
 }
 
-// Coût total d'une tournée : depot → orders[perm[0]] → ... → orders[perm[k]] → depot
-function tourCost(matrix, perm) {
-  // Indice 0 = dépôt, indices 1..N = orders
-  // perm est un tableau d'indices dans 1..N
-  let cost = matrix[0][perm[0]];
-  for (let i = 0; i < perm.length - 1; i++) {
-    cost += matrix[perm[i]][perm[i+1]];
+// Cout pur : somme des temps d'arrivee futurs.
+// Plus cette somme est basse, moins les clients attendent globalement.
+// Aucune ponderation liee a l'age de la commande.
+function sumFutureWait(matrix, perm) {
+  if (perm.length === 0) return 0;
+  let elapsed = 0;
+  let total = 0;
+
+  for (let i = 0; i < perm.length; i++) {
+    const from = i === 0 ? 0 : perm[i - 1];
+    elapsed += matrix[from][perm[i]];
+
+    if (i > 0) elapsed += STOP_SEC;
+
+    total += elapsed;
   }
-  cost += matrix[perm[perm.length-1]][0]; // retour dépôt
+
+  return total;
+}
+
+// Duree affichee : position courante dernier client.
+// Pas de retour depot.
+function totalDurationCost(matrix, perm) {
+  if (perm.length === 0) return 0;
+  let cost = matrix[0][perm[0]];
+  for (let i = 0; i < perm.length - 1; i++) cost += matrix[perm[i]][perm[i + 1]];
   return cost;
 }
 
-// Nearest insertion : on construit la tournée en insérant chaque point
-// à la position où il coûte le moins, en partant du dépôt.
-function nearestInsertion(matrix, orderCount) {
-  if (orderCount === 0) return [];
-  if (orderCount === 1) return [1];
-
-  // Démarrer avec le point le plus proche du dépôt
-  let best = 1, bestD = matrix[0][1];
-  for (let i = 2; i <= orderCount; i++) {
-    if (matrix[0][i] < bestD) { bestD = matrix[0][i]; best = i; }
+function arrivalSecAt(matrix, tour, posInTour) {
+  let elapsed = 0;
+  for (let i = 0; i <= posInTour; i++) {
+    const from = i === 0 ? 0 : tour[i - 1];
+    elapsed += matrix[from][tour[i]];
+    if (i < posInTour) elapsed += STOP_SEC;
   }
-  const tour = [best];
-  const inserted = new Set([best]);
+  return elapsed;
+}
 
-  while (inserted.size < orderCount) {
-    // Pour chaque point non inséré, trouver la meilleure position d'insertion
-    let bestPoint = -1, bestPos = -1, bestDelta = Infinity;
-    for (let p = 1; p <= orderCount; p++) {
+function buildInsertion(matrix, n, costFn) {
+  if (n === 0) return [];
+  if (n === 1) return [1];
+
+  let start = 1, startCost = costFn(matrix, [1]);
+  for (let i = 2; i <= n; i++) {
+    const c = costFn(matrix, [i]);
+    if (c < startCost) { startCost = c; start = i; }
+  }
+
+  const tour = [start];
+  const inserted = new Set([start]);
+
+  while (inserted.size < n) {
+    let bestP = -1, bestPos = -1, bestC = Infinity;
+
+    for (let p = 1; p <= n; p++) {
       if (inserted.has(p)) continue;
-      // Essai à chaque position (0 = début, tour.length = fin)
       for (let pos = 0; pos <= tour.length; pos++) {
-        const prev = pos === 0 ? 0 : tour[pos-1];
-        const next = pos === tour.length ? 0 : tour[pos];
-        const delta = matrix[prev][p] + matrix[p][next] - matrix[prev][next];
-        if (delta < bestDelta) {
-          bestDelta = delta; bestPoint = p; bestPos = pos;
-        }
+        const cand = tour.slice(0, pos).concat([p], tour.slice(pos));
+        const c = costFn(matrix, cand);
+        if (c < bestC) { bestC = c; bestP = p; bestPos = pos; }
       }
     }
-    tour.splice(bestPos, 0, bestPoint);
-    inserted.add(bestPoint);
+
+    tour.splice(bestPos, 0, bestP);
+    inserted.add(bestP);
   }
+
   return tour;
 }
 
-// 2-opt : améliore la tournée en inversant des segments tant que ça réduit le coût
-function twoOpt(matrix, tour) {
+function twoOpt(matrix, tour, costFn) {
   const n = tour.length;
-  if (n < 4) return tour;
-  let improved = true;
-  let best = tour.slice();
-  let bestCost = tourCost(matrix, best);
-  let iterations = 0;
-  const MAX_ITER = 50; // garde-fou
-  while (improved && iterations < MAX_ITER) {
+  if (n < 3) return tour;
+
+  let improved = true, best = tour.slice(), bestC = costFn(matrix, best), it = 0;
+  const MAX_ITER = 60;
+
+  while (improved && it < MAX_ITER) {
     improved = false;
-    iterations++;
+    it++;
+
     for (let i = 0; i < n - 1; i++) {
       for (let j = i + 1; j < n; j++) {
-        // Inverser best[i..j]
-        const cand = best.slice(0, i).concat(best.slice(i, j+1).reverse(), best.slice(j+1));
-        const c = tourCost(matrix, cand);
-        if (c < bestCost - 0.01) { // tolérance numérique
-          best = cand; bestCost = c; improved = true;
+        const cand = best.slice(0, i).concat(best.slice(i, j + 1).reverse(), best.slice(j + 1));
+        const c = costFn(matrix, cand);
+        if (c < bestC - 0.001) {
+          best = cand;
+          bestC = c;
+          improved = true;
         }
       }
     }
   }
+
   return best;
 }
 
-// Optimise la tournée d'un livreur.
-// orders : commandes pending avec lat/lng
-// depot : {lat, lng} point de départ et d'arrivée
-// Retourne { ordered: orders[], totalDurationSec, osrmFailed: boolean }
-async function optimizeRouteOSRM(orders, depot) {
-  const valid = orders.filter(o => o.lat && o.lng);
-  const invalid = orders.filter(o => !o.lat || !o.lng);
+function orOpt(matrix, tour, costFn) {
+  const n = tour.length;
+  if (n < 4) return tour;
 
-  if (valid.length === 0) {
-    return { ordered: invalid, totalDurationSec: 0, osrmFailed: false };
+  let improved = true, best = tour.slice(), bestC = costFn(matrix, best), it = 0;
+  const MAX_ITER = 60;
+
+  while (improved && it < MAX_ITER) {
+    improved = false;
+    it++;
+
+    for (const segLen of [1, 2, 3]) {
+      if (segLen >= best.length) continue;
+
+      for (let i = 0; i <= best.length - segLen; i++) {
+        const seg = best.slice(i, i + segLen);
+        const without = best.slice(0, i).concat(best.slice(i + segLen));
+
+        for (let j = 0; j <= without.length; j++) {
+          if (j === i) continue;
+
+          for (const rev of (segLen > 1 ? [false, true] : [false])) {
+            const piece = rev ? seg.slice().reverse() : seg;
+            const cand = without.slice(0, j).concat(piece, without.slice(j));
+            const c = costFn(matrix, cand);
+
+            if (c < bestC - 0.001) {
+              best = cand;
+              bestC = c;
+              improved = true;
+            }
+          }
+        }
+      }
+    }
   }
 
-  const points = [depot, ...valid.map(o => ({ lat: o.lat, lng: o.lng }))];
-  const { matrix, failed } = await getOSRMMatrix(points);
-
-  if (valid.length === 1) {
-    const total = matrix[0][1] + matrix[1][0];
-    return { ordered: [...valid, ...invalid], totalDurationSec: total, osrmFailed: failed };
-  }
-
-  let tour = nearestInsertion(matrix, valid.length);
-  tour = twoOpt(matrix, tour);
-
-  const ordered = tour.map(idx => valid[idx - 1]); // -1 car indice 0 = dépôt
-  const totalDurationSec = tourCost(matrix, tour);
-
-  return { ordered: [...ordered, ...invalid], totalDurationSec, osrmFailed: failed };
+  return best;
 }
 
-// ── Affectation auto : trouver le livreur avec le coût marginal le plus faible ──
-// Pour chaque livreur :
-//   1. Récupère sa tournée actuelle (pending) + son dépôt
-//   2. Calcule la durée optimale actuelle
-//   3. Calcule la durée optimale en ajoutant le nouveau point
-//   4. delta = nouvelle - actuelle
-// Le livreur retenu est celui avec le plus petit delta.
-async function findBestDriverForOrder(newOrder, drivers, ordersByDriver) {
+async function optimizeRouteOSRM(orders, startPos) {
+  const valid = orders.filter(hasCoords);
+  const invalid = orders.filter(o => !hasCoords(o));
+
+  if (valid.length === 0) {
+    return { ordered: invalid, sumWaitSec: 0, totalDurationSec: 0, osrmFailed: false, matrix: null, tour: [] };
+  }
+
+  const points = [startPos, ...valid.map(o => ({ lat: o.lat, lng: o.lng }))];
+  const { matrix, failed } = await getOSRMMatrix(points);
+
+  const costFn = (m, p) => sumFutureWait(m, p);
+
+  if (valid.length === 1) {
+    return {
+      ordered: [...valid, ...invalid],
+      sumWaitSec: matrix[0][1],
+      totalDurationSec: matrix[0][1],
+      osrmFailed: failed,
+      matrix,
+      tour: [1]
+    };
+  }
+
+  let tour = buildInsertion(matrix, valid.length, costFn);
+  tour = twoOpt(matrix, tour, costFn);
+  tour = orOpt(matrix, tour, costFn);
+
+  return {
+    ordered: [...tour.map(idx => valid[idx - 1]), ...invalid],
+    sumWaitSec: sumFutureWait(matrix, tour),
+    totalDurationSec: totalDurationCost(matrix, tour),
+    osrmFailed: failed,
+    matrix,
+    tour
+  };
+}
+
+async function findBestDriverForOrder(newOrder, drivers, ordersByDriver, startPosByDriver) {
   const driverIds = Object.keys(drivers);
   if (driverIds.length === 0) return null;
   if (driverIds.length === 1) return driverIds[0];
-  if (!newOrder.lat || !newOrder.lng) return driverIds[0]; // pas de coords → premier livreur dispo
+  if (!hasCoords(newOrder)) return driverIds[0];
 
-  let bestDriver = null;
-  let bestDelta = Infinity;
+  let bestDid = null;
+  let bestScore = Infinity;
 
   for (const did of driverIds) {
-    const driver = drivers[did];
-    const depot = (driver.baseLat && driver.baseLng)
-      ? { lat: driver.baseLat, lng: driver.baseLng }
-      : { lat: DEFAULT_DEPOT.lat, lng: DEFAULT_DEPOT.lng };
-    const currentOrders = (ordersByDriver[did] || []).filter(o => o.lat && o.lng);
+    const startPos = startPosByDriver[did];
+    const currentOrders = (ordersByDriver[did] || []).filter(hasCoords);
 
-    // Durée actuelle
-    const { totalDurationSec: currentTotal } = await optimizeRouteOSRM(currentOrders, depot);
-    // Durée avec le nouveau point
-    const { totalDurationSec: newTotal } = await optimizeRouteOSRM([...currentOrders, newOrder], depot);
-    const delta = newTotal - currentTotal;
+    const before = await optimizeRouteOSRM(currentOrders, startPos);
+    const after = await optimizeRouteOSRM([...currentOrders, newOrder], startPos);
 
-    if (delta < bestDelta) {
-      bestDelta = delta;
-      bestDriver = did;
+    let arrivalNew = Infinity;
+    if (after.matrix && after.tour.length > 0) {
+      const newIdx = currentOrders.length + 1;
+      const posInTour = after.tour.indexOf(newIdx);
+      if (posInTour >= 0) arrivalNew = arrivalSecAt(after.matrix, after.tour, posInTour);
+    }
+
+    const deltaOthers = (after.sumWaitSec - arrivalNew) - before.sumWaitSec;
+    const routeIncrease = after.totalDurationSec - before.totalDurationSec;
+
+    // Score equilibre :
+    // - livrer le nouveau client tot
+    // - ne pas augmenter inutilement l'attente des autres
+    // - ne pas rallonger la tournee pour rien
+    const score = arrivalNew + 0.7 * Math.max(0, deltaOthers) + 0.3 * Math.max(0, routeIncrease);
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestDid = did;
     }
   }
-  return bestDriver;
+
+  return bestDid;
 }
 
-// ── Géocodage ───────────────────────────────────────────────
+// -- Geocodage -----------------------------------------------
 async function geocodeAddress(address) {
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
     { headers: {'Accept-Language':'fr-FR','User-Agent':'LivraisonApp/1.0'} }
   );
   const data = await res.json();
-  if (!data.length) throw new Error('non trouvée');
+  if (!data.length) throw new Error('non trouvee');
   return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), displayName: data[0].display_name };
 }
 
-// ── ETAs basés sur la tournée optimisée ──────────────────────
-// On utilise la matrice OSRM déjà calculée : pour chaque point dans l'ordre,
-// le temps = somme des durées depuis le dépôt + 5 min par stop précédent.
-async function calcETAs(orderedRoute, depot) {
+// -- ETAs ----------------------------------------------------
+async function calcETAs(orderedRoute, startPos) {
   if (!orderedRoute.length) return [];
-  const valid = orderedRoute.filter(o => o.lat && o.lng);
+  const valid = orderedRoute.filter(hasCoords);
   if (!valid.length) return orderedRoute.map(() => null);
 
-  const points = [depot, ...valid.map(o => ({ lat: o.lat, lng: o.lng }))];
+  const points = [startPos, ...valid.map(o => ({ lat: o.lat, lng: o.lng }))];
   const { matrix } = await getOSRMMatrix(points);
 
   const etaByValidIdx = [];
   let t = Date.now();
+
   for (let i = 0; i < valid.length; i++) {
-    const fromIdx = i === 0 ? 0 : i; // i=0 → dépôt; i>0 → point précédent
+    const fromIdx = i === 0 ? 0 : i;
     t += matrix[fromIdx][i + 1] * 1000;
     etaByValidIdx.push(t);
-    t += STOP_MS; // temps passé chez le client
+    t += STOP_SEC * 1000;
   }
-  // Mapper sur orderedRoute (qui peut contenir des invalides en fin)
+
   let vIdx = 0;
-  return orderedRoute.map(o => {
-    if (o.lat && o.lng) return etaByValidIdx[vIdx++];
-    return null;
-  });
+  return orderedRoute.map(o => hasCoords(o) ? etaByValidIdx[vIdx++] : null);
 }
 
-// Hook pour les ETAs
-function useETAs(route, depot) {
+function useETAs(route, startPos) {
   const [etas, setEtas] = useState([]);
-  const key = route.map(o => `${o.id}:${o.lat??''}:${o.lng??''}`).join('|')
-    + (depot ? `|${depot.lat},${depot.lng}` : '');
+  const key = route.map(o => `${o.id}:${o.lat ?? ''}:${o.lng ?? ''}`).join('|')
+    + (startPos ? `|${startPos.lat},${startPos.lng}` : '');
+
   useEffect(() => {
-    if (!route.length || !depot) { setEtas([]); return; }
+    if (!route.length || !startPos) {
+      setEtas([]);
+      return;
+    }
+
     let dead = false;
-    calcETAs(route, depot).then(r => { if (!dead) setEtas(r); });
+    calcETAs(route, startPos).then(r => { if (!dead) setEtas(r); });
     return () => { dead = true; };
   }, [key]);
+
   return etas;
 }
 
-// Hook pour la tournée optimisée d'un chauffeur
-// Recalcule quand la liste des commandes ou le dépôt change
-function useOptimizedRoute(pendingOrders, depot) {
-  const [state, setState] = useState({ ordered: [], totalDurationSec: 0, osrmFailed: false, loading: true });
-  const key = pendingOrders.map(o => `${o.id}:${o.lat??''}:${o.lng??''}`).join('|')
-    + (depot ? `|${depot.lat},${depot.lng}` : '');
+function useOptimizedRoute(pendingOrders, startPos) {
+  const [state, setState] = useState({
+    ordered: [],
+    sumWaitSec: 0,
+    totalDurationSec: 0,
+    osrmFailed: false,
+    loading: true
+  });
+
+  const key = pendingOrders.map(o => `${o.id}:${o.lat ?? ''}:${o.lng ?? ''}:${o.addedAt || 0}`).join('|')
+    + (startPos ? `|${startPos.lat.toFixed(5)},${startPos.lng.toFixed(5)}` : '');
+
   useEffect(() => {
     if (!pendingOrders.length) {
-      setState({ ordered: [], totalDurationSec: 0, osrmFailed: false, loading: false });
+      setState({ ordered: [], sumWaitSec: 0, totalDurationSec: 0, osrmFailed: false, loading: false });
       return;
     }
-    if (!depot) {
-      // Pas de dépôt → on garde l'ordre brut
-      setState({ ordered: pendingOrders, totalDurationSec: 0, osrmFailed: false, loading: false });
+
+    if (!startPos) {
+      setState({ ordered: pendingOrders, sumWaitSec: 0, totalDurationSec: 0, osrmFailed: false, loading: false });
       return;
     }
+
     let dead = false;
     setState(s => ({ ...s, loading: true }));
-    optimizeRouteOSRM(pendingOrders, depot).then(r => {
+
+    optimizeRouteOSRM(pendingOrders, startPos).then(r => {
       if (!dead) setState({ ...r, loading: false });
     });
+
     return () => { dead = true; };
   }, [key]);
+
   return state;
 }
 
-// ── Formatters ──────────────────────────────────────────────
+// -- Formatters ----------------------------------------------
 const fmtTime = ts => new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
 const fmtCountdown = d => {
   const ms = d - Date.now();
@@ -479,7 +559,7 @@ const fmtCountdown = d => {
   return h > 0 ? `${h}h${String(m).padStart(2,'0')}` : `${m}min`;
 };
 const fmtDuration = sec => {
-  if (!sec || sec <= 0) return '–';
+  if (!sec || sec <= 0) return '-';
   const m = Math.round(sec / 60);
   if (m < 60) return `${m} min`;
   const h = Math.floor(m / 60), mm = m % 60;
@@ -487,24 +567,28 @@ const fmtDuration = sec => {
 };
 const urgency = d => {
   const ms = d - Date.now();
-  if (ms <= 0) return 'late'; if (ms < 45*60000) return 'critical';
-  if (ms < 90*60000) return 'warn'; return 'ok';
+  if (ms <= 0) return 'late';
+  if (ms < 45*60000) return 'critical';
+  if (ms < 90*60000) return 'warn';
+  return 'ok';
 };
-const wazeUrl = o => o.lat && o.lng
+const isOverThreeHours = o => Date.now() - (o.addedAt || Date.now()) >= DEADLINE_MS;
+const wazeUrl = o => hasCoords(o)
   ? `https://waze.com/ul?ll=${o.lat},${o.lng}&navigate=yes`
-  : `https://waze.com/ul?q=${encodeURIComponent(o.address)}&navigate=yes`;
-const fmtEuro = v => v != null && v !== '' ? `${parseFloat(v).toFixed(2).replace('.',',')} €` : null;
+  : `https://waze.com/ul?q=${encodeURIComponent(o.address || '')}&navigate=yes`;
+const fmtEuro = v => v != null && v !== '' ? `${parseFloat(v).toFixed(2).replace('.',',')} EUR` : null;
 
 function parseTimeToTs(str) {
   const parts = str.trim().replace('h',':').split(':');
   if (parts.length < 2) return null;
   const h = parseInt(parts[0]), m = parseInt(parts[1]);
   if (isNaN(h) || isNaN(m) || h > 23 || m > 59) return null;
-  const d = new Date(); d.setHours(h, m, 0, 0);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
   return d.getTime();
 }
 
-// ── Firebase ────────────────────────────────────────────────
+// -- Firebase helpers ----------------------------------------
 const dbRef  = p => window._dbRef(window._db, p);
 const dbUpd  = (p, v) => window._dbUpd(dbRef(p), v);
 const dbPush = (p, v) => window._dbPush(dbRef(p), v);
@@ -512,19 +596,27 @@ const dbRem  = p => window._dbRem(dbRef(p));
 const dbOn   = (p, cb) => window._dbOn(dbRef(p), s => cb(s.val()));
 
 function Toast({ msg, onDone }) {
-  useEffect(() => { const t = setTimeout(onDone, 2200); return () => clearTimeout(t); }, []);
+  useEffect(() => {
+    const t = setTimeout(onDone, 2200);
+    return () => clearTimeout(t);
+  }, []);
   return <div className="toast">{msg}</div>;
 }
 
-// ══════════════════════════════════════════════════════════
+function Over3hAlert({ order }) {
+  if (!isOverThreeHours(order)) return null;
+  return <div className="alert-3h">ALERTE Client +3h - a verifier manuellement</div>;
+}
+
+// ============================================================
 // APP
-// ══════════════════════════════════════════════════════════
+// ============================================================
 function App() {
-  const [fbReady,  setFbReady]  = useState(!!window._firebaseReady);
-  const [drivers,  setDrivers]  = useState({});
-  const [meetups,  setMeetups]  = useState({});
-  const [orders,   setOrders]   = useState({});
-  const [screen,   setScreen]   = useState(() => {
+  const [fbReady, setFbReady] = useState(!!window._firebaseReady);
+  const [drivers, setDrivers] = useState({});
+  const [meetups, setMeetups] = useState({});
+  const [orders, setOrders] = useState({});
+  const [screen, setScreen] = useState(() => {
     const h = window.location.hash;
     if (h.startsWith('#driver-')) return h.slice(1);
     if (h.startsWith('#track-'))  return h.slice(1);
@@ -537,20 +629,27 @@ function App() {
   useEffect(() => {
     if (!fbReady) window.addEventListener('firebaseReady', () => setFbReady(true));
   }, []);
-  useEffect(() => { const t = setInterval(() => tick(n=>n+1), 60000); return ()=>clearInterval(t); }, []);
+
+  useEffect(() => {
+    const t = setInterval(() => tick(n => n + 1), 60000);
+    return () => clearInterval(t);
+  }, []);
+
   useEffect(() => {
     if (!fbReady) return;
     dbOn('drivers', v => setDrivers(v || {}));
     dbOn('meetups', v => setMeetups(v || {}));
     dbOn('orders',  v => setOrders(v  || {}));
   }, [fbReady]);
+
   useEffect(() => {
-    if (screen.startsWith('driver-') || screen.startsWith('track-') || screen.startsWith('meetup-'))
+    if (screen.startsWith('driver-') || screen.startsWith('track-') || screen.startsWith('meetup-')) {
       window.location.hash = screen;
-    else history.replaceState(null,'',window.location.pathname);
+    } else {
+      history.replaceState(null, '', window.location.pathname);
+    }
   }, [screen]);
 
-  // ── Drivers ──
   async function addDriver(name) {
     if (!name.trim()) return;
     await dbPush('drivers', {
@@ -561,276 +660,368 @@ function App() {
       baseLng: DEFAULT_DEPOT.lng
     });
   }
+
   async function removeDriver(id) {
     await dbRem(`drivers/${id}`);
-    Object.entries(orders).forEach(([oid,o]) => { if (o.driverId===id) dbUpd(`orders/${oid}`,{driverId:null}); });
+    Object.entries(orders).forEach(([oid, o]) => {
+      if (o.driverId === id) dbUpd(`orders/${oid}`, { driverId: null });
+    });
   }
-  async function updateDriver(id, p) { await dbUpd(`drivers/${id}`, p); }
 
-  // ── Meetups ──
+  async function updateDriver(id, p) {
+    await dbUpd(`drivers/${id}`, p);
+  }
+
   async function addMeetup(name) {
     if (!name.trim()) return;
     const color = PALETTE[(Object.keys(drivers).length + Object.keys(meetups).length) % PALETTE.length];
     await dbPush('meetups', { name: name.trim(), color });
   }
+
   async function removeMeetup(id) {
     await dbRem(`meetups/${id}`);
-    Object.entries(orders).forEach(([oid,o]) => { if (o.meetupId===id) dbUpd(`orders/${oid}`,{meetupId:null}); });
+    Object.entries(orders).forEach(([oid, o]) => {
+      if (o.meetupId === id) dbUpd(`orders/${oid}`, { meetupId: null });
+    });
   }
-  async function updateMeetup(id, p) { await dbUpd(`meetups/${id}`, p); }
 
-  // ── Orders ──
-  async function updateOrder(id, p) { await dbUpd(`orders/${id}`, p); }
-  async function deleteOrder(id) { await dbRem(`orders/${id}`); }
+  async function updateMeetup(id, p) {
+    await dbUpd(`meetups/${id}`, p);
+  }
 
-  // Dépôt d'un livreur : son baseLat/Lng si défini, sinon dépôt par défaut Montbéliard
+  async function updateOrder(id, p) {
+    await dbUpd(`orders/${id}`, p);
+  }
+
+  async function deleteOrder(id) {
+    await dbRem(`orders/${id}`);
+  }
+
   function depotFor(did) {
     const d = drivers[did];
-    if (d?.baseLat && d?.baseLng) return { lat: d.baseLat, lng: d.baseLng };
+    if (d?.baseLat != null && d?.baseLng != null) return { lat: d.baseLat, lng: d.baseLng };
     return { lat: DEFAULT_DEPOT.lat, lng: DEFAULT_DEPOT.lng };
   }
 
-  // Commandes pending d'un livreur (non triées)
-  function pendingFor(did) {
-    return Object.entries(orders)
-      .filter(([,o]) => o.driverId === did && o.status !== 'done')
-      .map(([id,o]) => ({ ...o, id }));
-  }
-  function getDone(did) {
-    return Object.entries(orders).filter(([,o])=>o.driverId===did&&o.status==='done')
-      .map(([id,o])=>({...o,id})).sort((a,b)=>b.addedAt-a.addedAt);
-  }
-  function getMeetupOrders(mid) {
-    return Object.entries(orders).filter(([,o])=>o.meetupId===mid&&o.status!=='done')
-      .map(([id,o])=>({...o,id})).sort((a,b)=>a.addedAt-b.addedAt);
-  }
-  function getMeetupDone(mid) {
-    return Object.entries(orders).filter(([,o])=>o.meetupId===mid&&o.status==='done')
-      .map(([id,o])=>({...o,id})).sort((a,b)=>b.addedAt-a.addedAt);
+  function currentPosFor(did) {
+    const doneList = Object.values(orders)
+      .filter(o => o.driverId === did && o.status === 'done' && hasCoords(o) && o.deliveredAt)
+      .sort((a, b) => b.deliveredAt - a.deliveredAt);
+
+    if (doneList.length > 0) return { lat: doneList[0].lat, lng: doneList[0].lng };
+    return depotFor(did);
   }
 
-  if (!fbReady) return (
-    <div className="app"><div className="empty-txt" style={{marginTop:80}}>
-      <div className="spin" style={{width:24,height:24,margin:'0 auto 12px'}}/> Connexion…
-    </div></div>
-  );
+  function pendingFor(did) {
+    return Object.entries(orders)
+      .filter(([, o]) => o.driverId === did && o.status !== 'done')
+      .map(([id, o]) => ({ ...o, id }));
+  }
+
+  function getDone(did) {
+    return Object.entries(orders)
+      .filter(([, o]) => o.driverId === did && o.status === 'done')
+      .map(([id, o]) => ({ ...o, id }))
+      .sort((a, b) => b.addedAt - a.addedAt);
+  }
+
+  function getMeetupOrders(mid) {
+    return Object.entries(orders)
+      .filter(([, o]) => o.meetupId === mid && o.status !== 'done')
+      .map(([id, o]) => ({ ...o, id }))
+      .sort((a, b) => a.addedAt - b.addedAt);
+  }
+
+  function getMeetupDone(mid) {
+    return Object.entries(orders)
+      .filter(([, o]) => o.meetupId === mid && o.status === 'done')
+      .map(([id, o]) => ({ ...o, id }))
+      .sort((a, b) => b.addedAt - a.addedAt);
+  }
+
+  if (!fbReady) {
+    return (
+      <div className="app">
+        <div className="empty-txt" style={{marginTop:80}}>
+          <div className="spin" style={{width:24,height:24,margin:'0 auto 12px'}}/> Connexion...
+        </div>
+      </div>
+    );
+  }
 
   const isDriverScreen = screen.startsWith('driver-');
   const isTrackScreen  = screen.startsWith('track-');
   const isMeetupScreen = screen.startsWith('meetup-');
-  const driverId       = isDriverScreen ? screen.replace('driver-','') : null;
-  const trackOrderId   = isTrackScreen  ? screen.replace('track-','')  : null;
-  const meetupId       = isMeetupScreen ? screen.replace('meetup-','') : null;
+  const driverId       = isDriverScreen ? screen.replace('driver-', '') : null;
+  const trackOrderId   = isTrackScreen  ? screen.replace('track-', '')  : null;
+  const meetupId       = isMeetupScreen ? screen.replace('meetup-', '') : null;
   const curDriver      = driverId ? drivers[driverId] : null;
   const curMeetup      = meetupId ? meetups[meetupId] : null;
   const isDirectLink   = (isDriverScreen || isTrackScreen || isMeetupScreen) && !!window.location.hash;
 
-  // Vue client tracking
   if (isTrackScreen && isDirectLink) {
     const order = orders[trackOrderId];
-    if (!order) return (
-      <div className="app">
-        <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
-        <div className="empty-txt" style={{marginTop:60}}>
-          <div className="spin" style={{width:24,height:24,margin:'0 auto 12px'}}/> Chargement…
+    if (!order) {
+      return (
+        <div className="app">
+          <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
+          <div className="empty-txt" style={{marginTop:60}}>
+            <div className="spin" style={{width:24,height:24,margin:'0 auto 12px'}}/> Chargement...
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+
     return (
       <div className="app">
         <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
         <CustomerView
-          order={{...order, id:trackOrderId}}
+          order={{...order, id: trackOrderId}}
           pendingForDriver={order.driverId ? pendingFor(order.driverId) : []}
-          depot={order.driverId ? depotFor(order.driverId) : null}/>
+          depot={order.driverId ? currentPosFor(order.driverId) : null}
+        />
       </div>
     );
   }
 
-  // Vue livreur directe
-  if (isDriverScreen && isDirectLink && curDriver) return (
-    <div className="app">
-      <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
-      <DriverView driver={{...curDriver,id:driverId}}
-        pending={pendingFor(driverId)} done={getDone(driverId)}
-        depot={depotFor(driverId)}
-        onDone={(id,amt)=>updateOrder(id,{status:'done',amount:amt??null,deliveredAt:Date.now()})}
-        onBack={null}/>
-      {toast && <Toast msg={toast} onDone={()=>setToast('')}/>}
-    </div>
-  );
+  if (isDriverScreen && isDirectLink && curDriver) {
+    return (
+      <div className="app">
+        <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
+        <DriverView
+          driver={{...curDriver, id: driverId}}
+          pending={pendingFor(driverId)}
+          done={getDone(driverId)}
+          depot={currentPosFor(driverId)}
+          onDone={(id, amt) => updateOrder(id, { status:'done', amount:amt ?? null, deliveredAt:Date.now() })}
+          onBack={null}
+        />
+        {toast && <Toast msg={toast} onDone={() => setToast('')}/>}
+      </div>
+    );
+  }
 
-  // Vue meet up directe
-  if (isMeetupScreen && isDirectLink && curMeetup) return (
-    <div className="app">
-      <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
-      <MeetupView meetup={{...curMeetup,id:meetupId}}
-        pending={getMeetupOrders(meetupId)} done={getMeetupDone(meetupId)}
-        onDone={(id,amt)=>updateOrder(id,{status:'done',amount:amt??null,deliveredAt:Date.now()})}
-        onBack={null}/>
-      {toast && <Toast msg={toast} onDone={()=>setToast('')}/>}
-    </div>
-  );
+  if (isMeetupScreen && isDirectLink && curMeetup) {
+    return (
+      <div className="app">
+        <header className="hdr"><span className="hdr-logo">LIVR<em>AI</em>SON</span></header>
+        <MeetupView
+          meetup={{...curMeetup, id: meetupId}}
+          pending={getMeetupOrders(meetupId)}
+          done={getMeetupDone(meetupId)}
+          onDone={(id, amt) => updateOrder(id, { status:'done', amount:amt ?? null, deliveredAt:Date.now() })}
+          onBack={null}
+        />
+        {toast && <Toast msg={toast} onDone={() => setToast('')}/>}
+      </div>
+    );
+  }
 
   return (
     <div className="app">
       <header className="hdr">
         <span className="hdr-logo">LIVR<em>AI</em>SON</span>
-        {isDriverScreen
-          ? <button className="tab on" onClick={()=>setScreen('driver-select')}>← Retour</button>
-          : <>
-              <button className={`tab ${screen==='admin'?'on':''}`} onClick={()=>setScreen('admin')}>Admin</button>
-              <button className={`tab ${screen==='history'?'on':''}`} onClick={()=>setScreen('history')}>📋</button>
-              <button className={`tab ${screen==='driver-select'?'on':''}`} onClick={()=>setScreen('driver-select')}>Chauffeur</button>
-            </>
-        }
+        {isDriverScreen ? (
+          <button className="tab on" onClick={() => setScreen('driver-select')}>Retour</button>
+        ) : (
+          <>
+            <button className={`tab ${screen === 'admin' ? 'on' : ''}`} onClick={() => setScreen('admin')}>Admin</button>
+            <button className={`tab ${screen === 'history' ? 'on' : ''}`} onClick={() => setScreen('history')}>[NOTE]</button>
+            <button className={`tab ${screen === 'driver-select' ? 'on' : ''}`} onClick={() => setScreen('driver-select')}>Chauffeur</button>
+          </>
+        )}
       </header>
 
-      {screen==='admin' && (
-        <AdminView drivers={drivers} meetups={meetups} orders={orders}
-          pendingFor={pendingFor} getDone={getDone} depotFor={depotFor}
-          getMeetupOrders={getMeetupOrders} getMeetupDone={getMeetupDone}
-          addDriver={addDriver} removeDriver={removeDriver} updateDriver={updateDriver}
-          addMeetup={addMeetup} removeMeetup={removeMeetup} updateMeetup={updateMeetup}
-          updateOrder={updateOrder} deleteOrder={deleteOrder}
-          resetAll={async()=>{
+      {screen === 'admin' && (
+        <AdminView
+          drivers={drivers}
+          meetups={meetups}
+          orders={orders}
+          pendingFor={pendingFor}
+          getDone={getDone}
+          currentPosFor={currentPosFor}
+          getMeetupOrders={getMeetupOrders}
+          getMeetupDone={getMeetupDone}
+          addDriver={addDriver}
+          removeDriver={removeDriver}
+          updateDriver={updateDriver}
+          addMeetup={addMeetup}
+          removeMeetup={removeMeetup}
+          updateMeetup={updateMeetup}
+          updateOrder={updateOrder}
+          deleteOrder={deleteOrder}
+          resetAll={async () => {
             const date = new Date().toLocaleDateString('fr-FR');
             const snap = { date, savedAt: Date.now(), orders: Object.values(orders) };
             await dbPush('history', snap);
-            for(const id of Object.keys(orders)) await dbRem(`orders/${id}`);
+            for (const id of Object.keys(orders)) await dbRem(`orders/${id}`);
           }}
-          onToast={setToast}/>
+          onToast={setToast}
+        />
       )}
-      {screen==='history' && <HistoryView/>}
-      {screen==='driver-select' && (
-        <SelectDriver drivers={drivers} orders={orders} onSelect={id=>setScreen(`driver-${id}`)}/>
+
+      {screen === 'history' && <HistoryView/>}
+
+      {screen === 'driver-select' && (
+        <SelectDriver drivers={drivers} orders={orders} onSelect={id => setScreen(`driver-${id}`)}/>
       )}
+
       {isDriverScreen && curDriver && (
-        <DriverView driver={{...curDriver,id:driverId}}
-          pending={pendingFor(driverId)} done={getDone(driverId)}
-          depot={depotFor(driverId)}
-          onDone={(id,amt)=>updateOrder(id,{status:'done',amount:amt??null,deliveredAt:Date.now()})}
-          onBack={()=>setScreen('driver-select')}/>
+        <DriverView
+          driver={{...curDriver, id: driverId}}
+          pending={pendingFor(driverId)}
+          done={getDone(driverId)}
+          depot={currentPosFor(driverId)}
+          onDone={(id, amt) => updateOrder(id, { status:'done', amount:amt ?? null, deliveredAt:Date.now() })}
+          onBack={() => setScreen('driver-select')}
+        />
       )}
-      {toast && <Toast msg={toast} onDone={()=>setToast('')}/>}
+
+      {toast && <Toast msg={toast} onDone={() => setToast('')}/>}
     </div>
   );
 }
 
-// ══════════════════════════════════════════════════════════
-// ADMIN VIEW
-// ══════════════════════════════════════════════════════════
-function AdminView({ drivers, meetups, orders, pendingFor, getDone, depotFor, getMeetupOrders, getMeetupDone, addDriver, removeDriver, updateDriver, addMeetup, removeMeetup, updateMeetup, updateOrder, deleteOrder, resetAll, onToast }) {
+// ============================================================
+// ADMIN
+// ============================================================
+function AdminView({
+  drivers, meetups, orders, pendingFor, getDone, currentPosFor,
+  getMeetupOrders, getMeetupDone,
+  addDriver, removeDriver, updateDriver,
+  addMeetup, removeMeetup, updateMeetup,
+  updateOrder, deleteOrder, resetAll, onToast
+}) {
   const [newName, setNewName] = useState('');
   const [newMeetupName, setNewMeetupName] = useState('');
-  const [form, setForm] = useState({client:'',address:'',meetupId:'',note:''});
+  const [form, setForm] = useState({client:'', address:'', meetupId:'', note:''});
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('');
   const [err, setErr] = useState('');
 
   async function handleAdd() {
     if (!form.client.trim()) return;
+
     const isMeetup = !!form.meetupId;
     if (!isMeetup && !form.address.trim()) return;
-    setLoading(true); setErr('');
+
+    setLoading(true);
+    setErr('');
+
     const ts = Date.now();
 
-    // Pour les meetups : pas de géocodage, pas d'affectation auto
     if (isMeetup) {
       const order = {
-        client: form.client.trim(), address: '', note: form.note.trim(),
-        driverId: null, meetupId: form.meetupId,
-        addedAt: ts, deadline: ts + DEADLINE_MS,
-        status: 'pending', lat: null, lng: null, displayName: null
+        client: form.client.trim(),
+        address: '',
+        note: form.note.trim(),
+        driverId: null,
+        meetupId: form.meetupId,
+        addedAt: ts,
+        deadline: ts + DEADLINE_MS,
+        status: 'pending',
+        lat: null,
+        lng: null,
+        displayName: null
       };
+
       await dbPush('orders', order);
-      setForm({client:'',address:'',meetupId:'',note:''});
+      setForm({client:'', address:'', meetupId:'', note:''});
       setLoading(false);
       return;
     }
 
-    // Livraison à domicile : géocodage puis affectation auto
-    setLoadingMsg('📍 Localisation GPS…');
+    setLoadingMsg('[GPS] Localisation GPS...');
+
     let geo = null;
     try {
       geo = await geocodeAddress(form.address.trim());
     } catch(e) {
-      setErr('GPS non trouvé — vérifie l\'adresse ou ajoute la ville');
-      setLoading(false); setLoadingMsg('');
+      setErr("GPS non trouve - verifie l'adresse ou ajoute la ville");
+      setLoading(false);
+      setLoadingMsg('');
       return;
     }
 
-    // Affectation auto : on cherche le livreur qui perd le moins de temps
-    let assignedDriverId = null;
     const driverIds = Object.keys(drivers);
     if (driverIds.length === 0) {
-      setErr('Aucun chauffeur — ajoute un chauffeur d\'abord');
-      setLoading(false); setLoadingMsg('');
+      setErr("Aucun chauffeur - ajoute un chauffeur d'abord");
+      setLoading(false);
+      setLoadingMsg('');
       return;
     }
 
-    setLoadingMsg('🧠 Recherche du meilleur livreur…');
-    // Construire le dictionnaire commandes par livreur
+    setLoadingMsg('[AUTO] Recherche du meilleur livreur...');
+
     const ordersByDriver = {};
-    for (const did of driverIds) {
-      ordersByDriver[did] = pendingFor(did);
-    }
-    const tempOrder = { ...form, lat: geo.lat, lng: geo.lng, id: '__temp__' };
+    for (const did of driverIds) ordersByDriver[did] = pendingFor(did);
+
+    const startPosByDriver = {};
+    for (const did of driverIds) startPosByDriver[did] = currentPosFor(did);
+
+    const tempOrder = { ...form, lat: geo.lat, lng: geo.lng, addedAt: ts, id: '__temp__' };
+    let assignedDriverId = null;
+
     try {
-      // findBestDriverForOrder a besoin du dépôt par livreur, on lui passe les drivers
-      // mais comme il appelle optimizeRouteOSRM qui prend le depot, on enrichit drivers avec leur depot
-      const driversWithDepot = {};
-      for (const did of driverIds) {
-        const dep = depotFor(did);
-        driversWithDepot[did] = { ...drivers[did], baseLat: dep.lat, baseLng: dep.lng };
-      }
-      assignedDriverId = await findBestDriverForOrder(tempOrder, driversWithDepot, ordersByDriver);
+      assignedDriverId = await findBestDriverForOrder(tempOrder, drivers, ordersByDriver, startPosByDriver);
     } catch(e) {
-      console.error('Affectation auto échouée', e);
-      assignedDriverId = driverIds[0]; // fallback : premier livreur
+      console.error('Affectation auto echouee', e);
+      assignedDriverId = driverIds[0];
     }
 
     const order = {
-      client: form.client.trim(), address: form.address.trim(), note: form.note.trim(),
-      driverId: assignedDriverId, meetupId: null,
-      addedAt: ts, deadline: ts + DEADLINE_MS,
+      client: form.client.trim(),
+      address: form.address.trim(),
+      note: form.note.trim(),
+      driverId: assignedDriverId,
+      meetupId: null,
+      addedAt: ts,
+      deadline: ts + DEADLINE_MS,
       status: 'pending',
-      lat: geo.lat, lng: geo.lng, displayName: geo.displayName
+      lat: geo.lat,
+      lng: geo.lng,
+      displayName: geo.displayName
     };
+
     await dbPush('orders', order);
-    setForm({client:'',address:'',meetupId:'',note:''});
-    setLoading(false); setLoadingMsg('');
+    setForm({client:'', address:'', meetupId:'', note:''});
+    setLoading(false);
+    setLoadingMsg('');
+
     if (assignedDriverId && drivers[assignedDriverId]) {
-      onToast(`✓ Attribué à ${drivers[assignedDriverId].name}`);
+      onToast(`OK Attribue a ${drivers[assignedDriverId].name}`);
     }
   }
 
-  // Réassigner une commande au meilleur livreur (bouton "auto" sur une commande)
   async function reassignAuto(orderId) {
     const o = orders[orderId];
-    if (!o || !o.lat || !o.lng) { onToast('❌ Pas de coordonnées GPS'); return; }
+    if (!o || !hasCoords(o)) {
+      onToast('[ERREUR] Pas de coordonnees GPS');
+      return;
+    }
+
     const driverIds = Object.keys(drivers);
     if (driverIds.length === 0) return;
+
     const ordersByDriver = {};
     for (const did of driverIds) {
-      // On exclut la commande elle-même pour ne pas fausser le calcul du livreur actuel
       ordersByDriver[did] = pendingFor(did).filter(x => x.id !== orderId);
     }
-    const driversWithDepot = {};
-    for (const did of driverIds) {
-      const dep = depotFor(did);
-      driversWithDepot[did] = { ...drivers[did], baseLat: dep.lat, baseLng: dep.lng };
-    }
-    const best = await findBestDriverForOrder(o, driversWithDepot, ordersByDriver);
+
+    const startPosByDriver = {};
+    for (const did of driverIds) startPosByDriver[did] = currentPosFor(did);
+
+    const best = await findBestDriverForOrder({...o, id: orderId}, drivers, ordersByDriver, startPosByDriver);
+
     if (best && best !== o.driverId) {
       await updateOrder(orderId, { driverId: best });
-      onToast(`✓ Réattribué à ${drivers[best].name}`);
+      onToast(`OK Reattribue a ${drivers[best].name}`);
     } else {
-      onToast('✓ Déjà chez le meilleur livreur');
+      onToast('OK Deja chez le meilleur livreur');
     }
   }
 
-  const unassigned = Object.entries(orders).filter(([,o])=>!o.driverId&&!o.meetupId&&o.status!=='done');
+  const unassigned = Object.entries(orders).filter(([, o]) => !o.driverId && !o.meetupId && o.status !== 'done');
 
   return (
     <div className="content">
@@ -838,49 +1029,58 @@ function AdminView({ drivers, meetups, orders, pendingFor, getDone, depotFor, ge
       <div className="card">
         <div className="card-pad">
           <div className="sec-label">Nouvelle commande</div>
+
           <div className="fld">
             <label className="fld-lbl">Nom du client</label>
             <input className="inp" placeholder="Ex : Mohammed D." value={form.client}
-              onChange={e=>setForm(f=>({...f,client:e.target.value}))}/>
+              onChange={e => setForm(f => ({...f, client:e.target.value}))}/>
           </div>
+
           <div className="fld">
             <label className="fld-lbl">Type</label>
             <select className="inp" value={form.meetupId ? 'meetup' : 'delivery'}
-              onChange={e=>{ if(e.target.value==='delivery') setForm(f=>({...f,meetupId:''})); else setForm(f=>({...f,address:''})); }}>
-              <option value="delivery">🛵 Livraison à domicile (attribution auto)</option>
-              <option value="meetup">📍 Meet up (sur place)</option>
+              onChange={e => {
+                if (e.target.value === 'delivery') setForm(f => ({...f, meetupId:''}));
+                else setForm(f => ({...f, address:''}));
+              }}>
+              <option value="delivery">[LIV] Livraison a domicile (attribution auto)</option>
+              <option value="meetup">[GPS] Meet up (sur place)</option>
             </select>
           </div>
+
           {!form.meetupId ? (
             <div className="fld">
               <label className="fld-lbl">Adresse de livraison</label>
               <input className="inp" placeholder="Ex : 14 rue de la Paix, Belfort" value={form.address}
-                onChange={e=>setForm(f=>({...f,address:e.target.value}))}
-                onKeyDown={e=>e.key==='Enter'&&handleAdd()}/>
+                onChange={e => setForm(f => ({...f, address:e.target.value}))}
+                onKeyDown={e => e.key === 'Enter' && handleAdd()}/>
               <div style={{fontSize:10,color:'var(--muted)',marginTop:5,fontStyle:'italic'}}>
-                🧠 L'algorithme attribuera au livreur qui perdra le moins de temps
+                [AUTO] Optimisation pure : attente totale minimale, sans priorite automatique aux anciens clients.
               </div>
             </div>
           ) : (
             <div className="fld">
               <label className="fld-lbl">Point Meet up</label>
-              <select className="inp" value={form.meetupId} onChange={e=>setForm(f=>({...f,meetupId:e.target.value}))}>
-                <option value="">— Choisir un point</option>
-                {Object.entries(meetups).map(([id,m])=><option key={id} value={id}>{m.name}</option>)}
+              <select className="inp" value={form.meetupId} onChange={e => setForm(f => ({...f, meetupId:e.target.value}))}>
+                <option value="">- Choisir un point</option>
+                {Object.entries(meetups).map(([id, m]) => <option key={id} value={id}>{m.name}</option>)}
               </select>
             </div>
           )}
+
           <div className="fld">
             <label className="fld-lbl">Message pour le livreur</label>
             <textarea className="inp" rows={3} value={form.note}
-              placeholder="Ex : 2x burger, 1x frites — 24€ — code: 1492"
-              onChange={e=>setForm(f=>({...f,note:e.target.value}))}
+              placeholder="Ex : 2x burger, 1x frites - 24EUR - code: 1492"
+              onChange={e => setForm(f => ({...f, note:e.target.value}))}
               style={{resize:'none',lineHeight:'1.5'}}/>
           </div>
+
           {loading && <div className="geocoding-row"><span className="spin"/> {loadingMsg}</div>}
-          {err && <div className="err">⚠ {err}</div>}
+          {err && <div className="err">ALERTE {err}</div>}
+
           <button className="btn-main" onClick={handleAdd}
-            disabled={!form.client.trim()||((!form.meetupId&&!form.address.trim())||(form.meetupId===''&&Object.keys(drivers).length===0))||loading}>
+            disabled={!form.client.trim() || ((!form.meetupId && !form.address.trim()) || (form.meetupId === '' && Object.keys(drivers).length === 0)) || loading}>
             + Ajouter la commande
           </button>
         </div>
@@ -890,9 +1090,11 @@ function AdminView({ drivers, meetups, orders, pendingFor, getDone, depotFor, ge
         <div className="card-pad" style={{paddingBottom:0}}>
           <div className="sec-label">Chauffeurs ({Object.keys(drivers).length})</div>
         </div>
-        {Object.keys(drivers).length===0 && <div className="empty-txt">Aucun chauffeur</div>}
-        {Object.entries(drivers).map(([id,d])=>{
-          const n = Object.values(orders).filter(o=>o.driverId===id&&o.status!=='done').length;
+
+        {Object.keys(drivers).length === 0 && <div className="empty-txt">Aucun chauffeur</div>}
+
+        {Object.entries(drivers).map(([id, d]) => {
+          const n = Object.values(orders).filter(o => o.driverId === id && o.status !== 'done').length;
           const link = `${window.location.href.split('#')[0]}#driver-${id}`;
           return (
             <div key={id}>
@@ -900,346 +1102,268 @@ function AdminView({ drivers, meetups, orders, pendingFor, getDone, depotFor, ge
                 <div className="dot" style={{background:d.color}}/>
                 <span className="driver-row-name">{d.name}</span>
                 <span className="driver-row-n">{n} cmd</span>
-                <button className="btn-sm" style={{color:'#06D6A0'}} onClick={()=>{
-                  navigator.clipboard.writeText(link); onToast('🔗 Lien copié !');
-                }}>🔗 Lien</button>
-                <button className="btn-sm btn-del" onClick={()=>removeDriver(id)}>✕</button>
+                <button className="btn-sm" style={{color:'var(--ok)'}} onClick={() => {
+                  navigator.clipboard.writeText(link);
+                  onToast('[LIEN] Lien copie !');
+                }}>[LIEN] Lien</button>
+                <button className="btn-sm btn-del" onClick={() => removeDriver(id)}>X</button>
               </div>
-              <DriverBaseRow driver={{...d,id}} onUpdate={updateDriver}/>
+              <DriverBaseRow driver={{...d, id}} onUpdate={updateDriver}/>
             </div>
           );
         })}
+
         <div className="add-row">
-          <input className="add-inp" placeholder="Prénom du chauffeur" value={newName}
-            onChange={e=>setNewName(e.target.value)}
-            onKeyDown={e=>{if(e.key==='Enter'&&newName.trim()){addDriver(newName);setNewName('');}}}/>
-          <button className="btn-add" onClick={()=>{if(newName.trim()){addDriver(newName);setNewName('');}}}>+ Ajouter</button>
+          <input className="add-inp" placeholder="Prenom du chauffeur" value={newName}
+            onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && newName.trim()) { addDriver(newName); setNewName(''); } }}/>
+          <button className="btn-add" onClick={() => { if (newName.trim()) { addDriver(newName); setNewName(''); } }}>+ Ajouter</button>
         </div>
       </div>
 
-      {/* POINTS MEET UP */}
       <div className="card">
         <div className="card-pad" style={{paddingBottom:0}}>
-          <div className="sec-label">📍 Points Meet up ({Object.keys(meetups).length})</div>
+          <div className="sec-label">[GPS] Points Meet up ({Object.keys(meetups).length})</div>
         </div>
-        {Object.keys(meetups).length===0 && <div className="empty-txt">Aucun point meet up</div>}
-        {Object.entries(meetups).map(([id,m])=>{
-          const n = Object.values(orders).filter(o=>o.meetupId===id&&o.status!=='done').length;
+
+        {Object.keys(meetups).length === 0 && <div className="empty-txt">Aucun point meet up</div>}
+
+        {Object.entries(meetups).map(([id, m]) => {
+          const n = Object.values(orders).filter(o => o.meetupId === id && o.status !== 'done').length;
           const link = `${window.location.href.split('#')[0]}#meetup-${id}`;
-          const total = Object.values(orders).filter(o=>o.meetupId===id&&o.status==='done').reduce((s,o)=>s+(parseFloat(o.amount)||0),0);
+          const total = Object.values(orders).filter(o => o.meetupId === id && o.status === 'done').reduce((s, o) => s + (parseFloat(o.amount) || 0), 0);
+
           return (
             <div key={id}>
               <div className="driver-row">
                 <div className="dot" style={{background:m.color}}/>
                 <span className="driver-row-name">{m.name}</span>
                 <span className="driver-row-n">{n} en attente</span>
-                {total>0 && <span style={{fontFamily:'Space Mono,monospace',fontSize:10,color:'var(--ok)'}}>💰{fmtEuro(total)}</span>}
-                <button className="btn-sm" style={{color:'#06D6A0'}} onClick={()=>{navigator.clipboard.writeText(link);onToast('🔗 Lien copié !');}}>🔗 Lien</button>
-                <button className="btn-sm btn-del" onClick={()=>removeMeetup(id)}>✕</button>
+                {total > 0 && <span style={{fontFamily:'Space Mono,monospace',fontSize:10,color:'var(--ok)'}}>[EUR]{fmtEuro(total)}</span>}
+                <button className="btn-sm" style={{color:'var(--ok)'}} onClick={() => {
+                  navigator.clipboard.writeText(link);
+                  onToast('[LIEN] Lien copie !');
+                }}>[LIEN] Lien</button>
+                <button className="btn-sm btn-del" onClick={() => removeMeetup(id)}>X</button>
               </div>
-              <MeetupStockRow meetup={{...m,id}} onUpdate={updateMeetup}/>
-              {getMeetupOrders(id).map(o=>(
-                <div className="order-row" key={o.id} style={{background: o.status==='arrived'?'#001830':''}}>
-                  <div className="o-num" style={{color: o.status==='arrived'?'#4FC3F7':'var(--accent)'}}>
-                    {o.status==='arrived'?'✓':'⏳'}
+
+              <MeetupStockRow meetup={{...m, id}} onUpdate={updateMeetup}/>
+
+              {getMeetupOrders(id).map(o => (
+                <div className="order-row" key={o.id} style={{background:o.status === 'arrived' ? '#001830' : ''}}>
+                  <div className="o-num" style={{color:o.status === 'arrived' ? 'var(--blue)' : 'var(--accent)'}}>
+                    {o.status === 'arrived' ? 'OK' : '[ATTENTE]'}
                   </div>
                   <div className="o-body">
                     <div className="o-client">{o.client}</div>
-                    {o.note && <div style={{fontSize:11,color:'#FFD60A'}}>📋 {o.note}</div>}
-                    <div className="o-time">↓ {fmtTime(o.addedAt)}</div>
+                    <Over3hAlert order={o}/>
+                    {o.note && <div style={{fontSize:11,color:'var(--warn)'}}>[NOTE] {o.note}</div>}
+                    <div className="o-time">v {fmtTime(o.addedAt)}</div>
                   </div>
                   <div className="o-actions">
-                    {o.status!=='arrived' ? (
-                      <button className="btn-sm" style={{color:'#4FC3F7',whiteSpace:'nowrap'}}
-                        onClick={()=>{
-                          updateOrder(o.id,{status:'arrived'});
-                          if(Notification.permission==='granted')
-                            new Notification('📍 Client arrivé !',{body:`${o.client} est sur place`});
-                        }}>Client arrivé</button>
+                    {o.status !== 'arrived' ? (
+                      <button className="btn-sm" style={{color:'var(--blue)',whiteSpace:'nowrap'}}
+                        onClick={() => updateOrder(o.id, {status:'arrived'})}>Client arrive</button>
                     ) : (
-                      <span style={{fontSize:10,color:'#4FC3F7',fontWeight:700}}>Sur place</span>
+                      <span style={{fontSize:10,color:'var(--blue)',fontWeight:700}}>Sur place</span>
                     )}
-                    <button className="btn-sm btn-del" onClick={()=>deleteOrder(o.id)}>✕</button>
+                    <button className="btn-sm btn-del" onClick={() => deleteOrder(o.id)}>X</button>
                   </div>
                 </div>
               ))}
-              {getMeetupDone(id).map(o=>(
+
+              {getMeetupDone(id).map(o => (
                 <div className="order-row" key={o.id} style={{opacity:.4}}>
-                  <div className="o-num" style={{color:'var(--ok)'}}>✓</div>
+                  <div className="o-num" style={{color:'var(--ok)'}}>OK</div>
                   <div className="o-body">
                     <div className="o-client">{o.client}</div>
-                    {o.amount!=null && <div style={{fontSize:10,color:'var(--ok)'}}>💰 {fmtEuro(o.amount)}</div>}
+                    {o.amount != null && <div style={{fontSize:10,color:'var(--ok)'}}>[EUR] {fmtEuro(o.amount)}</div>}
                   </div>
-                  <button className="btn-sm btn-del" onClick={()=>deleteOrder(o.id)}>✕</button>
+                  <button className="btn-sm btn-del" onClick={() => deleteOrder(o.id)}>X</button>
                 </div>
               ))}
             </div>
           );
         })}
+
         <div className="add-row">
           <input className="add-inp" placeholder="Nom du point (ex: Boutique, Stand...)" value={newMeetupName}
-            onChange={e=>setNewMeetupName(e.target.value)}
-            onKeyDown={e=>{if(e.key==='Enter'&&newMeetupName.trim()){addMeetup(newMeetupName);setNewMeetupName('');}}}/>
-          <button className="btn-add" onClick={()=>{if(newMeetupName.trim()){addMeetup(newMeetupName);setNewMeetupName('');}}}>+ Ajouter</button>
+            onChange={e => setNewMeetupName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && newMeetupName.trim()) { addMeetup(newMeetupName); setNewMeetupName(''); } }}/>
+          <button className="btn-add" onClick={() => { if (newMeetupName.trim()) { addMeetup(newMeetupName); setNewMeetupName(''); } }}>+ Ajouter</button>
         </div>
       </div>
 
-      {unassigned.length>0 && (
+      {unassigned.length > 0 && (
         <div className="card">
           <div className="card-pad" style={{paddingBottom:0}}>
-            <div className="sec-label">⚠ Non assignées ({unassigned.length})</div>
+            <div className="sec-label">ALERTE Non assignees ({unassigned.length})</div>
           </div>
-          {unassigned.map(([id,o])=>(
+
+          {unassigned.map(([id, o]) => (
             <div className="unassigned-row" key={id}>
               <div className="u-info">
                 <div className="u-client">{o.client}</div>
+                <Over3hAlert order={o}/>
                 <div className="u-addr">{o.address}</div>
               </div>
               <div style={{display:'flex',gap:6}}>
-                <button className="btn-sm" style={{color:'var(--accent)'}} onClick={()=>reassignAuto(id)}>🧠 Auto</button>
+                <button className="btn-sm" style={{color:'var(--accent)'}} onClick={() => reassignAuto(id)}>[AUTO] Auto</button>
                 <select className="btn-sm" style={{color:'var(--accent)'}} value=""
-                  onChange={e=>{if(e.target.value)updateOrder(id,{driverId:e.target.value});}}>
-                  <option value="">Assigner →</option>
-                  {Object.entries(drivers).map(([did,d])=><option key={did} value={did}>{d.name}</option>)}
+                  onChange={e => { if (e.target.value) updateOrder(id, {driverId:e.target.value}); }}>
+                  <option value="">Assigner</option>
+                  {Object.entries(drivers).map(([did, d]) => <option key={did} value={did}>{d.name}</option>)}
                 </select>
-                <button className="btn-sm btn-del" onClick={()=>deleteOrder(id)}>✕</button>
+                <button className="btn-sm btn-del" onClick={() => deleteOrder(id)}>X</button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {Object.entries(drivers).map(([id,d])=>(
-        <AdminDriverCard key={id} driver={{...d,id}}
-          pending={pendingFor(id)} doneOrders={getDone(id)} depot={depotFor(id)}
-          allDrivers={drivers} updateOrder={updateOrder} deleteOrder={deleteOrder}
-          onReassignAuto={reassignAuto}/>
+      {Object.entries(drivers).map(([id, d]) => (
+        <AdminDriverCard
+          key={id}
+          driver={{...d, id}}
+          pending={pendingFor(id)}
+          doneOrders={getDone(id)}
+          depot={currentPosFor(id)}
+          allDrivers={drivers}
+          updateOrder={updateOrder}
+          deleteOrder={deleteOrder}
+          onReassignAuto={reassignAuto}
+        />
       ))}
 
       {Object.keys(orders).length > 0 && <ResetButton onReset={resetAll}/>}
-
       <div style={{height:20}}/>
     </div>
   );
 }
 
-// ── Admin Driver Card ────────────────────────────────────────
 function AdminDriverCard({ driver, pending, doneOrders, depot, allDrivers, updateOrder, deleteOrder, onReassignAuto }) {
   const { ordered: route, totalDurationSec, osrmFailed, loading } = useOptimizedRoute(pending, depot);
-  const etas  = useETAs(route, depot);
-  const total = doneOrders.reduce((s,o) => s + (parseFloat(o.amount)||0), 0);
+  const etas = useETAs(route, depot);
+  const total = doneOrders.reduce((s, o) => s + (parseFloat(o.amount) || 0), 0);
 
   return (
     <div className="card">
       <div className="route-hdr">
         <div className="dot" style={{background:driver.color}}/>
         <span className="route-hdr-name">{driver.name}</span>
-        <span className="route-hdr-n">{route.length} à livrer{doneOrders.length>0?` · ${doneOrders.length} ✓`:''}</span>
+        <span className="route-hdr-n">{route.length} a livrer{doneOrders.length > 0 ? `  ${doneOrders.length} OK` : ''}</span>
       </div>
-      {loading && <div className="optim-banner"><span className="spin"/> Calcul de la tournée optimale…</div>}
-      {osrmFailed && !loading && <div className="optim-banner" style={{background:'#2a0b12',borderColor:'var(--crit)',color:'var(--crit)'}}>⚠ OSRM indisponible — ordre estimé (vol d'oiseau)</div>}
-      {!loading && route.length > 1 && (
-        <div className="route-duration">🕐 Tournée totale : ~{fmtDuration(totalDurationSec)} (aller-retour dépôt)</div>
+
+      {loading && <div className="optim-banner"><span className="spin"/> Calcul de la tournee optimale...</div>}
+
+      {osrmFailed && !loading && (
+        <div className="optim-banner" style={{background:'#2a0b12',borderColor:'var(--crit)',color:'var(--crit)'}}>
+          ALERTE OSRM indisponible - ordre estime a vol d'oiseau
+        </div>
       )}
-      {total > 0 && <div className="route-total">💰 Encaissé aujourd'hui : {fmtEuro(total)}</div>}
+
+      {!loading && route.length > 1 && (
+        <div className="route-duration">[HEURE] Tournee estimee : ~{fmtDuration(totalDurationSec)} jusqu'au dernier client</div>
+      )}
+
+      {total > 0 && <div className="route-total">[EUR] Encaisse aujourd'hui : {fmtEuro(total)}</div>}
+
       {driver.stock > 0 && (
         <div style={{display:'flex',gap:0,borderBottom:'1px solid var(--border)'}}>
           <div style={{flex:1,padding:'6px 14px',background:'#061a0e',textAlign:'center',borderRight:'1px solid var(--border)'}}>
-            <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase'}}>Stock départ</div>
+            <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase'}}>Stock depart</div>
             <div style={{fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,color:'var(--muted)'}}>{fmtEuro(driver.stock)}</div>
           </div>
           <div style={{flex:1,padding:'6px 14px',background:'#061a0e',textAlign:'center',borderRight:'1px solid var(--border)'}}>
-            <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase'}}>Encaissé</div>
+            <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase'}}>Encaisse</div>
             <div style={{fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,color:'var(--ok)'}}>{fmtEuro(total)}</div>
           </div>
           <div style={{flex:1,padding:'6px 14px',background:'#061a0e',textAlign:'center'}}>
             <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase'}}>Restant</div>
-            <div style={{fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,color: (driver.stock-total)<0?'var(--crit)':'#4FC3F7'}}>{fmtEuro(Math.max(0,driver.stock-total))}</div>
+            <div style={{fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,color:(driver.stock-total)<0?'var(--crit)':'var(--blue)'}}>
+              {fmtEuro(Math.max(0, driver.stock-total))}
+            </div>
           </div>
         </div>
       )}
-      {route.length===0 && doneOrders.length===0 && <div className="empty-txt">Aucune commande assignée</div>}
 
-      {route.map((o,i)=>{
+      {route.length === 0 && doneOrders.length === 0 && <div className="empty-txt">Aucune commande assignee</div>}
+
+      {route.map((o, i) => {
         const u = urgency(o.deadline), eta = etas[i];
+
         return (
           <div className="order-row" key={o.id}>
-            <div className="o-num">{i+1}</div>
+            <div className="o-num">{i + 1}</div>
             <div className="o-body">
               <div className="o-client">{o.client}</div>
-              <div className="o-addr">{o.displayName||o.address}</div>
+              <Over3hAlert order={o}/>
+              <div className="o-addr">{o.displayName || o.address}</div>
               <div className="o-meta">
-                <span className="o-time">↓ {fmtTime(o.addedAt)}</span>
-                <span className={`badge b-${u}`}>{fmtCountdown(o.deadline)} · {fmtTime(o.deadline)}</span>
+                <span className="o-time">v {fmtTime(o.addedAt)}</span>
+                <span className={`badge b-${u}`}>{fmtCountdown(o.deadline)}  {fmtTime(o.deadline)}</span>
                 {o.driverEta
-                  ? <span className="badge" style={{background:'#001830',color:'#4FC3F7'}}>⏱ {fmtTime(o.driverEta)}</span>
-                  : eta ? <span className="badge b-eta">🕐 ~{fmtTime(eta)}</span> : null}
-                {!o.lat && <span className="badge" style={{background:'#1a1a00',color:'#555'}}>GPS…</span>}
+                  ? <span className="badge" style={{background:'#001830',color:'var(--blue)'}}>[ETA] {fmtTime(o.driverEta)}</span>
+                  : eta ? <span className="badge b-eta">[HEURE] ~{fmtTime(eta)}</span> : null}
+                {!hasCoords(o) && <span className="badge" style={{background:'#1a1a00',color:'#555'}}>GPS...</span>}
               </div>
             </div>
             <div className="o-actions">
-              <a className="btn-sm" href={wazeUrl(o)} target="_blank" style={{color:'#4FC3F7',textDecoration:'none'}}>Waze</a>
-              <button className="btn-sm" style={{color:'#C77DFF'}} onClick={()=>{
+              <a className="btn-sm" href={wazeUrl(o)} target="_blank" style={{color:'var(--blue)',textDecoration:'none'}}>Waze</a>
+              <button className="btn-sm" style={{color:'#C77DFF'}} onClick={() => {
                 const link = `${window.location.href.split('#')[0]}#track-${o.id}`;
                 navigator.clipboard.writeText(link);
-              }}>🔗 Client</button>
-              <button className="btn-sm" style={{color:'var(--accent)'}} onClick={()=>onReassignAuto(o.id)} title="Réattribuer au meilleur livreur">🧠 Auto</button>
+              }}>[LIEN] Client</button>
+              <button className="btn-sm" style={{color:'var(--accent)'}} onClick={() => onReassignAuto(o.id)} title="Reattribuer au meilleur livreur">[AUTO] Auto</button>
               <select className="btn-sm" value={driver.id}
-                onChange={e=>updateOrder(o.id,{driverId:e.target.value||null})} style={{fontSize:'9px'}}>
-                {Object.entries(allDrivers).map(([did,dr])=><option key={did} value={did}>{dr.name}</option>)}
-                <option value="">Non assigné</option>
+                onChange={e => updateOrder(o.id, {driverId:e.target.value || null})} style={{fontSize:'9px'}}>
+                {Object.entries(allDrivers).map(([did, dr]) => <option key={did} value={did}>{dr.name}</option>)}
+                <option value="">Non assigne</option>
               </select>
-              <button className="btn-sm btn-del" onClick={()=>deleteOrder(o.id)}>✕</button>
+              <button className="btn-sm btn-del" onClick={() => deleteOrder(o.id)}>X</button>
             </div>
           </div>
         );
       })}
 
-      {doneOrders.length>0 && <>
-        <div style={{padding:'6px 14px',background:'#0d0d0d',borderTop:'1px solid var(--border)',fontSize:10,color:'var(--muted)',letterSpacing:'1.5px',textTransform:'uppercase',fontWeight:700}}>
-          ✓ Livrées
-        </div>
-        {doneOrders.map(o=>(
-          <DoneOrderRow key={o.id} order={o} onUpdate={updateOrder} onDelete={deleteOrder}/>
-        ))}
-      </>}
+      {doneOrders.length > 0 && (
+        <>
+          <div style={{padding:'6px 14px',background:'#0d0d0d',borderTop:'1px solid var(--border)',fontSize:10,color:'var(--muted)',letterSpacing:'1.5px',textTransform:'uppercase',fontWeight:700}}>
+            OK Livrees
+          </div>
+          {doneOrders.map(o => (
+            <DoneOrderRow key={o.id} order={o} onUpdate={updateOrder} onDelete={deleteOrder}/>
+          ))}
+        </>
+      )}
     </div>
   );
 }
 
-// ── Done Order Row ──────────────────────────────────────────
-function DoneOrderRow({ order: o, onUpdate, onDelete, compact=false }) {
-  const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState('');
-
-  function startEdit() { setVal(o.amount != null ? String(o.amount) : ''); setEditing(true); }
-  function save() {
-    const parsed = val.trim() === '' ? null : parseFloat(val.replace(',','.'));
-    onUpdate(o.id, { amount: isNaN(parsed) ? null : parsed });
-    setEditing(false);
-  }
-
-  if (compact) {
-    return (
-      <div className="dv-order done">
-        <div className="dv-order-top">
-          <div className="dv-n" style={{color:'var(--ok)'}}>✓</div>
-          <div className="dv-body">
-            <div className="dv-client">{o.client}</div>
-            <div className="dv-addr">{o.displayName||o.address}</div>
-            {o.note && <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>📋 {o.note}</div>}
-          </div>
-        </div>
-        <div className="dv-order-footer">
-          <span className="dv-added">Livré — {fmtTime(o.addedAt)}</span>
-          <div style={{display:'flex',gap:6,alignItems:'center'}}>
-            {!editing ? (
-              <>
-                {o.amount!=null && <span style={{fontFamily:'Space Mono,monospace',fontSize:12,color:'var(--ok)',fontWeight:700}}>{fmtEuro(o.amount)}</span>}
-                <button onClick={startEdit} style={{background:'transparent',border:'1px solid #3a3a3a',color:'var(--muted)',borderRadius:5,padding:'2px 7px',fontSize:10,cursor:'pointer',fontFamily:'inherit'}}>
-                  {o.amount!=null ? '✏️' : '+ montant'}
-                </button>
-              </>
-            ) : (
-              <>
-                <input style={{width:70,background:'var(--s2)',border:'1px solid var(--ok)',color:'var(--text)',borderRadius:5,padding:'2px 6px',fontSize:13,fontFamily:'Space Mono,monospace',outline:'none'}}
-                  type="number" inputMode="decimal" value={val} autoFocus
-                  onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&save()}/>
-                <span style={{color:'var(--ok)',fontSize:12}}>€</span>
-                <button onClick={save} style={{background:'var(--ok)',color:'#000',border:'none',borderRadius:5,padding:'2px 8px',fontSize:11,fontWeight:800,cursor:'pointer'}}>✓</button>
-                <button onClick={()=>setEditing(false)} style={{background:'transparent',border:'none',color:'var(--muted)',fontSize:11,cursor:'pointer'}}>✕</button>
-              </>
-            )}
-            <span style={{color:'var(--ok)',fontSize:11,fontWeight:700}}>LIVRÉ</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="order-row" style={{opacity:.5}}>
-      <div className="o-num" style={{color:'var(--ok)'}}>✓</div>
-      <div className="o-body">
-        <div className="o-client">{o.client}</div>
-        <div className="o-addr">{o.displayName||o.address}</div>
-        {!editing ? (
-          <div style={{display:'flex',alignItems:'center',gap:6,marginTop:3}}>
-            {o.amount!=null && <span style={{fontSize:10,color:'var(--ok)',fontFamily:'Space Mono,monospace',fontWeight:700}}>💰 {fmtEuro(o.amount)}</span>}
-            <button onClick={startEdit} style={{background:'transparent',border:'1px solid #3a3a3a',color:'var(--muted)',borderRadius:4,padding:'1px 6px',fontSize:9,cursor:'pointer',fontFamily:'Space Mono,monospace'}}>
-              {o.amount!=null ? '✏️ modifier' : '+ montant'}
-            </button>
-            {o.amount!=null && (
-              <button onClick={()=>onUpdate(o.id,{amount:null})} style={{background:'transparent',border:'1px solid #3a3a3a',color:'var(--crit)',borderRadius:4,padding:'1px 6px',fontSize:9,cursor:'pointer',fontFamily:'Space Mono,monospace'}}>✕ effacer</button>
-            )}
-          </div>
-        ) : (
-          <div style={{display:'flex',gap:5,alignItems:'center',marginTop:4}}>
-            <input style={{width:80,background:'var(--s2)',border:'1px solid var(--ok)',color:'var(--text)',borderRadius:5,padding:'3px 7px',fontSize:13,fontFamily:'Space Mono,monospace',outline:'none'}}
-              type="number" inputMode="decimal" value={val} autoFocus
-              onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&save()}/>
-            <span style={{color:'var(--ok)',fontSize:12}}>€</span>
-            <button onClick={save} style={{background:'var(--ok)',color:'#000',border:'none',borderRadius:5,padding:'3px 9px',fontSize:11,fontWeight:800,cursor:'pointer'}}>✓</button>
-            <button onClick={()=>setEditing(false)} style={{background:'transparent',border:'none',color:'var(--muted)',fontSize:11,cursor:'pointer'}}>✕</button>
-          </div>
-        )}
-      </div>
-      <button className="btn-sm btn-del" onClick={()=>onDelete(o.id)}>✕</button>
-    </div>
-  );
-}
-
-// ── Reset Button ─────────────────────────────────────────────
-function ResetButton({ onReset }) {
-  const [confirm, setConfirm] = useState(false);
-  if (!confirm) return (
-    <div style={{textAlign:'center',paddingTop:8}}>
-      <button onClick={()=>setConfirm(true)} style={{
-        background:'transparent', border:'1.5px solid #3a0a0a', color:'var(--crit)',
-        borderRadius:10, padding:'10px 24px', fontFamily:'inherit', fontWeight:700,
-        fontSize:13, cursor:'pointer'
-      }}>🗑 Réinitialiser la journée</button>
-    </div>
-  );
-  return (
-    <div style={{background:'#1a0505',border:'2px solid var(--crit)',borderRadius:12,padding:16,textAlign:'center'}}>
-      <div style={{fontSize:14,fontWeight:700,color:'var(--crit)',marginBottom:8}}>⚠️ Supprimer toutes les commandes du jour ?</div>
-      <div style={{fontSize:12,color:'var(--muted)',marginBottom:12}}>Les chauffeurs et leurs points de départ seront conservés.</div>
-      <div style={{display:'flex',gap:10,justifyContent:'center'}}>
-        <button onClick={()=>{onReset();setConfirm(false);}} style={{
-          background:'var(--crit)',color:'#fff',border:'none',borderRadius:8,
-          padding:'9px 20px',fontWeight:800,fontSize:13,cursor:'pointer',fontFamily:'inherit'
-        }}>Oui, tout supprimer</button>
-        <button onClick={()=>setConfirm(false)} style={{
-          background:'transparent',border:'1px solid var(--border)',color:'var(--muted)',
-          borderRadius:8,padding:'9px 16px',fontSize:13,cursor:'pointer',fontFamily:'inherit'
-        }}>Annuler</button>
-      </div>
-    </div>
-  );
-}
-
-// ── Driver Base Row ──────────────────────────────────────────
 function DriverBaseRow({ driver, onUpdate }) {
   const [editingAddr, setEditingAddr] = useState(false);
   const [editingStock, setEditingStock] = useState(false);
-  const [addrVal, setAddrVal] = useState(driver.baseAddress||'');
+  const [addrVal, setAddrVal] = useState(driver.baseAddress || '');
   const [stockVal, setStockVal] = useState('');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
 
-  // Affiche "défaut" si le chauffeur utilise le dépôt par défaut
   const isDefault = driver.baseAddress === DEFAULT_DEPOT.address;
 
   async function saveAddr() {
     if (!addrVal.trim()) return;
-    setLoading(true); setErr('');
+    setLoading(true);
+    setErr('');
+
     try {
       const geo = await geocodeAddress(addrVal.trim());
       await onUpdate(driver.id, {baseAddress:addrVal.trim(), baseLat:geo.lat, baseLng:geo.lng});
       setEditingAddr(false);
-    } catch(e) { setErr('Adresse non trouvée'); }
-    finally { setLoading(false); }
+    } catch(e) {
+      setErr('Adresse non trouvee');
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function resetToDefault() {
@@ -1251,8 +1375,8 @@ function DriverBaseRow({ driver, onUpdate }) {
   }
 
   async function saveStock() {
-    const v = parseFloat(stockVal.replace(',','.'));
-    await onUpdate(driver.id, {stock: isNaN(v) ? null : v});
+    const v = parseFloat(stockVal.replace(',', '.'));
+    await onUpdate(driver.id, {stock:isNaN(v) ? null : v});
     setEditingStock(false);
   }
 
@@ -1262,48 +1386,52 @@ function DriverBaseRow({ driver, onUpdate }) {
         {!editingAddr ? (
           <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
             <span style={{fontSize:11,color:driver.baseLat?'var(--ok)':'var(--muted)'}}>
-              {driver.baseLat ? `📍 ${driver.baseAddress}${isDefault?' (dépôt par défaut)':''}` : '📍 Aucun point de départ'}
+              {driver.baseLat ? `[GPS] ${driver.baseAddress}${isDefault ? ' (depot par defaut)' : ''}` : '[GPS] Aucun point de depart'}
             </span>
-            <button className="btn-sm" onClick={()=>{setAddrVal(driver.baseAddress||'');setEditingAddr(true);}}>
-              {driver.baseLat?'Modifier':'+ Définir'}
+            <button className="btn-sm" onClick={() => { setAddrVal(driver.baseAddress || ''); setEditingAddr(true); }}>
+              {driver.baseLat ? 'Modifier' : '+ Definir'}
             </button>
             {!isDefault && driver.baseLat && (
-              <button className="btn-sm" onClick={resetToDefault} title="Revenir au dépôt par défaut">↺ Défaut</button>
+              <button className="btn-sm" onClick={resetToDefault} title="Revenir au depot par defaut">Reset Defaut</button>
             )}
           </div>
         ) : (
           <div style={{display:'flex',flexDirection:'column',gap:6}}>
             <div style={{display:'flex',gap:6}}>
               <input className="add-inp" style={{fontSize:13}} autoFocus
-                placeholder="Adresse de départ" value={addrVal}
-                onChange={e=>setAddrVal(e.target.value)}
-                onKeyDown={e=>e.key==='Enter'&&saveAddr()}/>
-              <button className="btn-add" onClick={saveAddr} disabled={loading||!addrVal.trim()}>{loading?'…':'✓'}</button>
-              <button className="btn-sm" onClick={()=>setEditingAddr(false)}>✕</button>
+                placeholder="Adresse de depart" value={addrVal}
+                onChange={e => setAddrVal(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && saveAddr()}/>
+              <button className="btn-add" onClick={saveAddr} disabled={loading || !addrVal.trim()}>{loading ? '...' : 'OK'}</button>
+              <button className="btn-sm" onClick={() => setEditingAddr(false)}>X</button>
             </div>
             {err && <span style={{fontSize:11,color:'var(--crit)'}}>{err}</span>}
           </div>
         )}
       </div>
+
       <div style={{padding:'0 14px 8px'}}>
         {!editingStock ? (
           <div style={{display:'flex',alignItems:'center',gap:8}}>
-            <span style={{fontSize:11,color:driver.stock>0?'#FFD60A':'var(--muted)'}}>
-              {driver.stock > 0 ? `💼 Stock : ${fmtEuro(driver.stock)}` : '💼 Aucun stock défini'}
+            <span style={{fontSize:11,color:driver.stock>0?'var(--warn)':'var(--muted)'}}>
+              {driver.stock > 0 ? `[STOCK] Stock : ${fmtEuro(driver.stock)}` : '[STOCK] Aucun stock defini'}
             </span>
-            <button className="btn-sm" onClick={()=>{setStockVal(driver.stock>0?String(driver.stock):'');setEditingStock(true);}}>
-              {driver.stock>0?'Modifier':'+ Définir'}
+            <button className="btn-sm" onClick={() => {
+              setStockVal(driver.stock > 0 ? String(driver.stock) : '');
+              setEditingStock(true);
+            }}>
+              {driver.stock > 0 ? 'Modifier' : '+ Definir'}
             </button>
           </div>
         ) : (
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
             <input className="add-inp" style={{fontSize:13,width:120}} autoFocus type="number" inputMode="decimal"
               placeholder="Ex: 5000" value={stockVal}
-              onChange={e=>setStockVal(e.target.value)}
-              onKeyDown={e=>e.key==='Enter'&&saveStock()}/>
-            <span style={{color:'#FFD60A',fontWeight:700}}>€</span>
-            <button className="btn-add" onClick={saveStock} disabled={!stockVal.trim()}>✓</button>
-            <button className="btn-sm" onClick={()=>setEditingStock(false)}>✕</button>
+              onChange={e => setStockVal(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveStock()}/>
+            <span style={{color:'var(--warn)',fontWeight:700}}>EUR</span>
+            <button className="btn-add" onClick={saveStock} disabled={!stockVal.trim()}>OK</button>
+            <button className="btn-sm" onClick={() => setEditingStock(false)}>X</button>
           </div>
         )}
       </div>
@@ -1311,21 +1439,56 @@ function DriverBaseRow({ driver, onUpdate }) {
   );
 }
 
-// ── Select Driver ────────────────────────────────────────────
+function ResetButton({ onReset }) {
+  const [confirm, setConfirm] = useState(false);
+
+  if (!confirm) {
+    return (
+      <div style={{textAlign:'center',paddingTop:8}}>
+        <button onClick={() => setConfirm(true)} style={{
+          background:'transparent',border:'1.5px solid #3a0a0a',color:'var(--crit)',
+          borderRadius:10,padding:'10px 24px',fontFamily:'inherit',fontWeight:700,
+          fontSize:13,cursor:'pointer'
+        }}>[RESET] Reinitialiser la journee</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{background:'#1a0505',border:'2px solid var(--crit)',borderRadius:12,padding:16,textAlign:'center'}}>
+      <div style={{fontSize:14,fontWeight:700,color:'var(--crit)',marginBottom:8}}>ALERTE Supprimer toutes les commandes du jour ?</div>
+      <div style={{fontSize:12,color:'var(--muted)',marginBottom:12}}>Les chauffeurs et leurs points de depart seront conserves.</div>
+      <div style={{display:'flex',gap:10,justifyContent:'center'}}>
+        <button onClick={() => { onReset(); setConfirm(false); }} style={{
+          background:'var(--crit)',color:'#fff',border:'none',borderRadius:8,
+          padding:'9px 20px',fontWeight:800,fontSize:13,cursor:'pointer',fontFamily:'inherit'
+        }}>Oui, tout supprimer</button>
+        <button onClick={() => setConfirm(false)} style={{
+          background:'transparent',border:'1px solid var(--border)',color:'var(--muted)',
+          borderRadius:8,padding:'9px 16px',fontSize:13,cursor:'pointer',fontFamily:'inherit'
+        }}>Annuler</button>
+      </div>
+    </div>
+  );
+}
+
 function SelectDriver({ drivers, orders, onSelect }) {
   return (
     <div className="sel-wrap">
       <div className="sel-title">Qui es-tu ?</div>
-      <div className="sel-sub">Sélectionne ton nom pour voir ta route</div>
-      {Object.keys(drivers).length===0 && <div className="empty-txt">Aucun chauffeur configuré</div>}
-      {Object.entries(drivers).map(([id,d])=>{
-        const n = Object.values(orders).filter(o=>o.driverId===id&&o.status!=='done').length;
+      <div className="sel-sub">Selectionne ton nom pour voir ta route</div>
+
+      {Object.keys(drivers).length === 0 && <div className="empty-txt">Aucun chauffeur configure</div>}
+
+      {Object.entries(drivers).map(([id, d]) => {
+        const n = Object.values(orders).filter(o => o.driverId === id && o.status !== 'done').length;
+
         return (
-          <button className="driver-sel-btn" key={id} onClick={()=>onSelect(id)}>
+          <button className="driver-sel-btn" key={id} onClick={() => onSelect(id)}>
             <div className="dot" style={{background:d.color,width:14,height:14}}/>
             <div>
               <span className="driver-sel-name">{d.name}</span>
-              <span className="driver-sel-count">{n} livraison{n!==1?'s':''} en attente</span>
+              <span className="driver-sel-count">{n} livraison{n !== 1 ? 's' : ''} en attente</span>
             </div>
           </button>
         );
@@ -1334,71 +1497,88 @@ function SelectDriver({ drivers, orders, onSelect }) {
   );
 }
 
-// ══════════════════════════════════════════════════════════
+// ============================================================
 // DRIVER VIEW
-// ══════════════════════════════════════════════════════════
+// ============================================================
 function DriverView({ driver, pending, done, depot, onDone, onBack }) {
   const { ordered: route, totalDurationSec, osrmFailed, loading } = useOptimizedRoute(pending, depot);
   const etas = useETAs(route, depot);
   const [time, setTime] = useState(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
   const [pendingId, setPending] = useState(null);
-  const [amtVal, setAmtVal]     = useState('');
+  const [amtVal, setAmtVal] = useState('');
   const [etaOpenId, setEtaOpen] = useState(null);
   const [etaInputVal, setEtaInputVal] = useState('');
   const prevRouteLen = useRef(route.length);
 
-  useEffect(()=>{
-    const t = setInterval(()=>setTime(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})),30000);
-    return ()=>clearInterval(t);
-  },[]);
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})), 30000);
+    return () => clearInterval(t);
+  }, []);
 
-  useEffect(()=>{
+  useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
-  },[]);
+  }, []);
 
-  useEffect(()=>{
+  useEffect(() => {
     if (route.length > prevRouteLen.current) {
       const newest = route[route.length - 1];
       if (newest && Notification.permission === 'granted') {
-        new Notification('🛵 Nouvelle livraison !', {
-          body: `${newest.client} — ${newest.address}`,
+        new Notification('[LIV] Nouvelle livraison !', {
+          body: `${newest.client} - ${newest.address}`,
           icon: '/favicon.ico'
         });
       }
     }
     prevRouteLen.current = route.length;
-  },[route.length]);
+  }, [route.length]);
 
-  function handleLivre(id) { setPending(id); setAmtVal(''); }
-  function confirm() { onDone(pendingId, amtVal!==''?parseFloat(amtVal.replace(',','.')):null); setPending(null); }
-  function skip()    { onDone(pendingId, null); setPending(null); }
-  function openEta(id) { setEtaOpen(id); setEtaInputVal(''); }
+  function handleLivre(id) {
+    setPending(id);
+    setAmtVal('');
+  }
+
+  function confirm() {
+    onDone(pendingId, amtVal !== '' ? parseFloat(amtVal.replace(',', '.')) : null);
+    setPending(null);
+  }
+
+  function skip() {
+    onDone(pendingId, null);
+    setPending(null);
+  }
+
+  function openEta(id) {
+    setEtaOpen(id);
+    setEtaInputVal('');
+  }
+
   function confirmEta(id) {
     const ts = parseTimeToTs(etaInputVal);
-    if (ts) { dbUpd(`orders/${id}`, {driverEta: ts}); }
+    if (ts) dbUpd(`orders/${id}`, {driverEta: ts});
     setEtaOpen(null);
   }
 
-  const totalDone = done.reduce((s,o)=>s+(parseFloat(o.amount)||0),0);
+  const totalDone = done.reduce((s, o) => s + (parseFloat(o.amount) || 0), 0);
 
   return (
     <div className="dv-wrap">
       <div className="dv-hdr">
         <div className="dot" style={{background:driver.color,width:12,height:12}}/>
         <span className="dv-hdr-name">{driver.name}</span>
-        {onBack && <button className="dv-back" onClick={onBack}>← Changer</button>}
+        {onBack && <button className="dv-back" onClick={onBack}>Changer</button>}
       </div>
 
       {loading && (
-        <div style={{background:'#001830',border:'1px solid #4FC3F7',color:'#4FC3F7',borderRadius:10,padding:'10px 14px',marginBottom:10,textAlign:'center',fontSize:12,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
-          <span className="spin"/> Calcul de ta tournée optimale…
+        <div style={{background:'#001830',border:'1px solid var(--blue)',color:'var(--blue)',borderRadius:10,padding:'10px 14px',marginBottom:10,textAlign:'center',fontSize:12,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+          <span className="spin"/> Calcul de ta tournee optimale...
         </div>
       )}
+
       {osrmFailed && !loading && (
         <div style={{background:'#2a0b12',border:'1px solid var(--crit)',color:'var(--crit)',borderRadius:10,padding:'10px 14px',marginBottom:10,textAlign:'center',fontSize:12,fontWeight:700}}>
-          ⚠ OSRM indisponible — ordre estimé (à vol d'oiseau). Vérifie l'ordre avant de partir.
+          ALERTE OSRM indisponible - ordre estime a vol d'oiseau. Verifie l'ordre avant de partir.
         </div>
       )}
 
@@ -1408,29 +1588,29 @@ function DriverView({ driver, pending, done, depot, onDone, onBack }) {
       </div>
 
       {!loading && route.length > 1 && (
-        <div style={{background:'#001830',border:'1px solid #003a5a',borderRadius:10,padding:'8px 14px',marginBottom:10,textAlign:'center',fontSize:12,color:'#4FC3F7',fontWeight:700}}>
-          🕐 Tournée totale : ~{fmtDuration(totalDurationSec)} (retour dépôt inclus)
+        <div style={{background:'#001830',border:'1px solid #003a5a',borderRadius:10,padding:'8px 14px',marginBottom:10,textAlign:'center',fontSize:12,color:'var(--blue)',fontWeight:700}}>
+          [HEURE] Tournee estimee : ~{fmtDuration(totalDurationSec)} jusqu'au dernier client
         </div>
       )}
 
       {(driver.stock > 0 || totalDone > 0) && (
         <div style={{background:'#0a1a0e',border:'1px solid #0f3d25',borderRadius:12,padding:14,marginBottom:14}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:10}}>Bilan journée</div>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:10}}>Bilan journee</div>
           <div style={{display:'flex',gap:8}}>
             {driver.stock > 0 && (
               <div style={{flex:1,background:'#061a0e',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
-                <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Stock départ</div>
+                <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Stock depart</div>
                 <div style={{fontFamily:'Space Mono,monospace',fontSize:13,fontWeight:700,color:'var(--muted)'}}>{fmtEuro(driver.stock)}</div>
               </div>
             )}
             <div style={{flex:1,background:'#061a0e',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
-              <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Encaissé</div>
+              <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Encaisse</div>
               <div style={{fontFamily:'Space Mono,monospace',fontSize:13,fontWeight:700,color:'var(--ok)'}}>{fmtEuro(totalDone)}</div>
             </div>
             {driver.stock > 0 && (
               <div style={{flex:1,background:'#061a0e',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
                 <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Restant</div>
-                <div style={{fontFamily:'Space Mono,monospace',fontSize:13,fontWeight:700,color: (driver.stock - totalDone) < 0 ? 'var(--crit)' : '#4FC3F7'}}>
+                <div style={{fontFamily:'Space Mono,monospace',fontSize:13,fontWeight:700,color:(driver.stock - totalDone) < 0 ? 'var(--crit)' : 'var(--blue)'}}>
                   {fmtEuro(Math.max(0, driver.stock - totalDone))}
                 </div>
               </div>
@@ -1439,175 +1619,280 @@ function DriverView({ driver, pending, done, depot, onDone, onBack }) {
         </div>
       )}
 
-      {route.length===0&&done.length===0 && <div className="empty-txt">Aucune livraison pour le moment 👍</div>}
-      {route.length===0&&done.length>0  && <div className="empty-txt" style={{color:'var(--ok)'}}>🎉 Toutes les livraisons sont terminées !</div>}
+      {route.length === 0 && done.length === 0 && <div className="empty-txt">Aucune livraison pour le moment [OK]</div>}
+      {route.length === 0 && done.length > 0 && <div className="empty-txt" style={{color:'var(--ok)'}}>[TERMINE] Toutes les livraisons sont terminees !</div>}
 
-      {route.map((o,i)=>{
-        const u = urgency(o.deadline), eta = etas[i], isPending = pendingId===o.id;
+      {route.map((o, i) => {
+        const u = urgency(o.deadline), eta = etas[i], isPending = pendingId === o.id;
+
         return (
           <div className="dv-order" key={o.id}>
             <div className="dv-order-top">
-              <div className="dv-n">{i+1}</div>
+              <div className="dv-n">{i + 1}</div>
               <div className="dv-body">
                 <div className="dv-client">{o.client}</div>
-                <div className="dv-addr">{o.displayName||o.address}</div>
+                <div className="dv-addr">{o.displayName || o.address}</div>
+
                 {o.note && (
-                  <div style={{background:'#1a1400',border:'1px solid #3a2e00',borderRadius:8,padding:'8px 10px',marginBottom:8,fontSize:13,color:'#FFD60A',lineHeight:'1.6',whiteSpace:'pre-wrap'}}>
-                    📋 {o.note}
+                  <div style={{background:'#1a1400',border:'1px solid #3a2e00',borderRadius:8,padding:'8px 10px',marginBottom:8,fontSize:13,color:'var(--warn)',lineHeight:'1.6',whiteSpace:'pre-wrap'}}>
+                    [NOTE] {o.note}
                   </div>
                 )}
+
                 {!isPending ? (
                   <>
                     <div className="dv-btns">
-                      <a className="dv-maps" href={wazeUrl(o)} target="_blank">🚗 Waze</a>
-                      <button className="dv-done" onClick={()=>handleLivre(o.id)}>✓ Livré</button>
+                      <a className="dv-maps" href={wazeUrl(o)} target="_blank">[WAZE] Waze</a>
+                      <button className="dv-done" onClick={() => handleLivre(o.id)}>OK Livre</button>
                     </div>
+
                     {etaOpenId !== o.id ? (
-                      <button onClick={()=>openEta(o.id)} style={{
-                        marginTop:6, background:'transparent', border:'1px solid #003a5a',
-                        color:'#4FC3F7', borderRadius:7, padding:'5px 10px', fontSize:11,
-                        fontFamily:'inherit', cursor:'pointer', width:'100%'
-                      }}>⏱ Saisir heure d'arrivée Waze</button>
+                      <button onClick={() => openEta(o.id)} style={{
+                        marginTop:6,background:'transparent',border:'1px solid #003a5a',
+                        color:'var(--blue)',borderRadius:7,padding:'5px 10px',fontSize:11,
+                        fontFamily:'inherit',cursor:'pointer',width:'100%'
+                      }}>[ETA] Saisir heure arrivee Waze</button>
                     ) : (
                       <div style={{marginTop:6,background:'#001830',border:'1px solid #003a5a',borderRadius:8,padding:10}}>
-                        <div style={{fontSize:11,color:'#4FC3F7',fontWeight:700,marginBottom:6}}>⏱ Heure Waze</div>
+                        <div style={{fontSize:11,color:'var(--blue)',fontWeight:700,marginBottom:6}}>[ETA] Heure Waze</div>
                         <div style={{display:'flex',gap:6}}>
-                          <input
-                            style={{flex:1,background:'var(--s2)',border:'1.5px solid #4FC3F7',color:'var(--text)',borderRadius:7,padding:'7px 10px',fontSize:22,fontFamily:'Space Mono,monospace',fontWeight:700,outline:'none',letterSpacing:4,textAlign:'center'}}
-                            placeholder="11:30" value={etaInputVal}
-                            inputMode="numeric"
-                            maxLength={5}
-                            onChange={e=>{
+                          <input style={{flex:1,background:'var(--s2)',border:'1.5px solid var(--blue)',color:'var(--text)',borderRadius:7,padding:'7px 10px',fontSize:22,fontFamily:'Space Mono,monospace',fontWeight:700,outline:'none',letterSpacing:4,textAlign:'center'}}
+                            placeholder="11:30" value={etaInputVal} inputMode="numeric" maxLength={5}
+                            onChange={e => {
                               let raw = e.target.value.replace(/\D/g,'').slice(0,4);
                               let fmt = raw.length > 2 ? raw.slice(0,2) + ':' + raw.slice(2) : raw;
                               setEtaInputVal(fmt);
                             }}
-                            onKeyDown={e=>{
-                              if(e.key==='Enter' && etaInputVal.length===5) confirmEta(o.id);
-                              if(e.key==='Backspace' && etaInputVal.endsWith(':')) {
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' && etaInputVal.length === 5) confirmEta(o.id);
+                              if (e.key === 'Backspace' && etaInputVal.endsWith(':')) {
                                 e.preventDefault();
                                 setEtaInputVal(etaInputVal.slice(0,1));
                               }
                             }}
                             autoFocus/>
-                          <button onClick={()=>{ if(etaInputVal.length===5) confirmEta(o.id); }}
-                            disabled={etaInputVal.length!==5}
-                            style={{background: etaInputVal.length===5 ? '#4FC3F7':'#003a5a',color: etaInputVal.length===5 ?'#000':'#555',border:'none',borderRadius:7,padding:'7px 14px',fontWeight:800,cursor: etaInputVal.length===5 ?'pointer':'not-allowed',fontFamily:'inherit',fontSize:14,transition:'all .15s'}}>✓</button>
-                          <button onClick={()=>setEtaOpen(null)}
-                            style={{background:'transparent',border:'1px solid var(--border)',color:'var(--muted)',borderRadius:7,padding:'7px 8px',cursor:'pointer',fontFamily:'inherit'}}>✕</button>
-                        </div>
-                        <div style={{fontSize:10,color:'var(--muted)',marginTop:5,textAlign:'center'}}>
-                          {etaInputVal.length < 5 ? `Tape ${5 - etaInputVal.length} chiffre${5-etaInputVal.length>1?'s':''} de plus` : '✓ Prêt à valider'}
+                          <button onClick={() => { if (etaInputVal.length === 5) confirmEta(o.id); }}
+                            disabled={etaInputVal.length !== 5}
+                            style={{background:etaInputVal.length === 5 ? 'var(--blue)' : '#003a5a',color:etaInputVal.length === 5 ? '#000' : '#555',border:'none',borderRadius:7,padding:'7px 14px',fontWeight:800,cursor:etaInputVal.length === 5 ? 'pointer' : 'not-allowed',fontFamily:'inherit',fontSize:14}}>OK</button>
+                          <button onClick={() => setEtaOpen(null)}
+                            style={{background:'transparent',border:'1px solid var(--border)',color:'var(--muted)',borderRadius:7,padding:'7px 8px',cursor:'pointer',fontFamily:'inherit'}}>X</button>
                         </div>
                       </div>
                     )}
+
                     {o.driverEta && etaOpenId !== o.id && (
-                      <div style={{marginTop:4,fontSize:11,color:'#4FC3F7',textAlign:'center'}}>
-                        ⏱ Arrivée confirmée : {fmtTime(o.driverEta)}
-                        <button onClick={()=>openEta(o.id)} style={{marginLeft:6,background:'transparent',border:'none',color:'var(--muted)',fontSize:10,cursor:'pointer'}}>modifier</button>
+                      <div style={{marginTop:4,fontSize:11,color:'var(--blue)',textAlign:'center'}}>
+                        [ETA] Arrivee confirmee : {fmtTime(o.driverEta)}
+                        <button onClick={() => openEta(o.id)} style={{marginLeft:6,background:'transparent',border:'none',color:'var(--muted)',fontSize:10,cursor:'pointer'}}>modifier</button>
                       </div>
                     )}
                   </>
                 ) : (
                   <div className="amount-box">
-                    <div className="amount-box-lbl">💰 Montant encaissé ?</div>
+                    <div className="amount-box-lbl">[EUR] Montant encaisse ?</div>
                     <div className="amount-row">
                       <input className="amount-inp" type="number" inputMode="decimal"
                         placeholder="0.00" value={amtVal}
-                        onChange={e=>setAmtVal(e.target.value)}
-                        onKeyDown={e=>e.key==='Enter'&&confirm()}
+                        onChange={e => setAmtVal(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && confirm()}
                         autoFocus/>
-                      <span style={{color:'var(--ok)',fontWeight:700,fontSize:16}}>€</span>
-                      <button className="amount-confirm" onClick={confirm}>✓ OK</button>
+                      <span style={{color:'var(--ok)',fontWeight:700,fontSize:16}}>EUR</span>
+                      <button className="amount-confirm" onClick={confirm}>OK OK</button>
                       <button className="amount-skip" onClick={skip}>Passer</button>
                     </div>
                   </div>
                 )}
               </div>
             </div>
+
             <div className="dv-order-footer">
-              <span className="dv-added">Reçu {fmtTime(o.addedAt)}</span>
+              <span className="dv-added">Recu {fmtTime(o.addedAt)}</span>
               <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}>
-                {eta && <span className="badge b-eta">🕐 ~{fmtTime(eta)}</span>}
-                <span className={`badge b-${u}`}>avant {fmtTime(o.deadline)} · {fmtCountdown(o.deadline)}</span>
+                {eta && <span className="badge b-eta">[HEURE] ~{fmtTime(eta)}</span>}
+                <span className={`badge b-${u}`}>avant {fmtTime(o.deadline)}  {fmtCountdown(o.deadline)}</span>
               </div>
             </div>
           </div>
         );
       })}
 
-      {done.length>0 && <>
-        <div style={{margin:'16px 0 8px',fontSize:10,color:'var(--muted)',letterSpacing:'2px',textTransform:'uppercase',fontWeight:700,textAlign:'center'}}>
-          ✓ Déjà livrées
-        </div>
-        {done.map(o=>(
-          <DoneOrderRow key={o.id} order={o}
-            onUpdate={(id,patch)=>dbUpd(`orders/${id}`,patch)}
-            onDelete={()=>{}} compact={true}/>
-        ))}
-      </>}
+      {done.length > 0 && (
+        <>
+          <div style={{margin:'16px 0 8px',fontSize:10,color:'var(--muted)',letterSpacing:'2px',textTransform:'uppercase',fontWeight:700,textAlign:'center'}}>
+            OK Deja livrees
+          </div>
+          {done.map(o => (
+            <DoneOrderRow key={o.id} order={o}
+              onUpdate={(id, patch) => dbUpd(`orders/${id}`, patch)}
+              onDelete={() => {}}
+              compact={true}/>
+          ))}
+        </>
+      )}
+
       <div style={{height:20}}/>
     </div>
   );
 }
 
-// ══════════════════════════════════════════════════════════
+function DoneOrderRow({ order: o, onUpdate, onDelete, compact=false }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState('');
+
+  function startEdit() {
+    setVal(o.amount != null ? String(o.amount) : '');
+    setEditing(true);
+  }
+
+  function save() {
+    const parsed = val.trim() === '' ? null : parseFloat(val.replace(',', '.'));
+    onUpdate(o.id, { amount:isNaN(parsed) ? null : parsed });
+    setEditing(false);
+  }
+
+  if (compact) {
+    return (
+      <div className="dv-order done">
+        <div className="dv-order-top">
+          <div className="dv-n" style={{color:'var(--ok)'}}>OK</div>
+          <div className="dv-body">
+            <div className="dv-client">{o.client}</div>
+            <div className="dv-addr">{o.displayName || o.address}</div>
+            {o.note && <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>[NOTE] {o.note}</div>}
+          </div>
+        </div>
+        <div className="dv-order-footer">
+          <span className="dv-added">Livre - {fmtTime(o.addedAt)}</span>
+          <div style={{display:'flex',gap:6,alignItems:'center'}}>
+            {!editing ? (
+              <>
+                {o.amount != null && <span style={{fontFamily:'Space Mono,monospace',fontSize:12,color:'var(--ok)',fontWeight:700}}>{fmtEuro(o.amount)}</span>}
+                <button onClick={startEdit} style={{background:'transparent',border:'1px solid #3a3a3a',color:'var(--muted)',borderRadius:5,padding:'2px 7px',fontSize:10,cursor:'pointer',fontFamily:'inherit'}}>
+                  {o.amount != null ? 'modifier' : '+ montant'}
+                </button>
+              </>
+            ) : (
+              <>
+                <input style={{width:70,background:'var(--s2)',border:'1px solid var(--ok)',color:'var(--text)',borderRadius:5,padding:'2px 6px',fontSize:13,fontFamily:'Space Mono,monospace',outline:'none'}}
+                  type="number" inputMode="decimal" value={val} autoFocus
+                  onChange={e => setVal(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && save()}/>
+                <span style={{color:'var(--ok)',fontSize:12}}>EUR</span>
+                <button onClick={save} style={{background:'var(--ok)',color:'#000',border:'none',borderRadius:5,padding:'2px 8px',fontSize:11,fontWeight:800,cursor:'pointer'}}>OK</button>
+                <button onClick={() => setEditing(false)} style={{background:'transparent',border:'none',color:'var(--muted)',fontSize:11,cursor:'pointer'}}>X</button>
+              </>
+            )}
+            <span style={{color:'var(--ok)',fontSize:11,fontWeight:700}}>LIVRE</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="order-row" style={{opacity:.5}}>
+      <div className="o-num" style={{color:'var(--ok)'}}>OK</div>
+      <div className="o-body">
+        <div className="o-client">{o.client}</div>
+        <div className="o-addr">{o.displayName || o.address}</div>
+
+        {!editing ? (
+          <div style={{display:'flex',alignItems:'center',gap:6,marginTop:3}}>
+            {o.amount != null && <span style={{fontSize:10,color:'var(--ok)',fontFamily:'Space Mono,monospace',fontWeight:700}}>[EUR] {fmtEuro(o.amount)}</span>}
+            <button onClick={startEdit} style={{background:'transparent',border:'1px solid #3a3a3a',color:'var(--muted)',borderRadius:4,padding:'1px 6px',fontSize:9,cursor:'pointer',fontFamily:'Space Mono,monospace'}}>
+              {o.amount != null ? 'modifier modifier' : '+ montant'}
+            </button>
+            {o.amount != null && (
+              <button onClick={() => onUpdate(o.id, {amount:null})} style={{background:'transparent',border:'1px solid #3a3a3a',color:'var(--crit)',borderRadius:4,padding:'1px 6px',fontSize:9,cursor:'pointer',fontFamily:'Space Mono,monospace'}}>X effacer</button>
+            )}
+          </div>
+        ) : (
+          <div style={{display:'flex',gap:5,alignItems:'center',marginTop:4}}>
+            <input style={{width:80,background:'var(--s2)',border:'1px solid var(--ok)',color:'var(--text)',borderRadius:5,padding:'3px 7px',fontSize:13,fontFamily:'Space Mono,monospace',outline:'none'}}
+              type="number" inputMode="decimal" value={val} autoFocus
+              onChange={e => setVal(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && save()}/>
+            <span style={{color:'var(--ok)',fontSize:12}}>EUR</span>
+            <button onClick={save} style={{background:'var(--ok)',color:'#000',border:'none',borderRadius:5,padding:'3px 9px',fontSize:11,fontWeight:800,cursor:'pointer'}}>OK</button>
+            <button onClick={() => setEditing(false)} style={{background:'transparent',border:'none',color:'var(--muted)',fontSize:11,cursor:'pointer'}}>X</button>
+          </div>
+        )}
+      </div>
+      <button className="btn-sm btn-del" onClick={() => onDelete(o.id)}>X</button>
+    </div>
+  );
+}
+
+// ============================================================
 // CUSTOMER VIEW
-// ══════════════════════════════════════════════════════════
+// ============================================================
 function CustomerView({ order, pendingForDriver, depot }) {
   const { ordered: route } = useOptimizedRoute(pendingForDriver, depot);
   const etas = useETAs(route, depot);
   const [now, setNow] = useState(Date.now());
-  useEffect(() => { const t = setInterval(()=>setNow(Date.now()), 30000); return ()=>clearInterval(t); }, []);
 
-  const pos  = route.findIndex(o => o.id === order.id);
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  const pos = route.findIndex(o => o.id === order.id);
   const calcEta = pos >= 0 ? etas[pos] : null;
   const eta = order.driverEta || calcEta;
   const etaIsConfirmed = !!order.driverEta;
   const isDone = order.status === 'done';
 
   const posLabel = pos === 0 ? 'Prochaine livraison' :
-                   pos === 1 ? '2ème sur la liste' :
-                   pos === 2 ? '3ème sur la liste' :
-                   pos > 2   ? `${pos+1}ème sur la liste` : null;
+                   pos === 1 ? '2eme sur la liste' :
+                   pos === 2 ? '3eme sur la liste' :
+                   pos > 2   ? `${pos + 1}eme sur la liste` : null;
 
   const etaWait = eta ? eta - now : null;
   const etaWaitTxt = etaWait != null
     ? etaWait <= 0 ? 'Imminent !'
-    : etaWait < 60000 ? 'Moins d\'1 minute'
-    : (() => { const h=Math.floor(etaWait/3600000), m=Math.floor((etaWait%3600000)/60000); return h>0?`${h}h${String(m).padStart(2,'0')}`:`${m} min`; })()
+    : etaWait < 60000 ? "Moins d'1 minute"
+    : (() => {
+      const h = Math.floor(etaWait / 3600000), m = Math.floor((etaWait % 3600000) / 60000);
+      return h > 0 ? `${h}h${String(m).padStart(2,'0')}` : `${m} min`;
+    })()
     : null;
 
   return (
-    <div style={{padding:20, display:'flex', flexDirection:'column', gap:16, maxWidth:400, margin:'0 auto'}}>
+    <div style={{padding:20,display:'flex',flexDirection:'column',gap:16,maxWidth:400,margin:'0 auto'}}>
       {isDone ? (
         <div style={{background:'#0a2a1a',border:'2px solid var(--ok)',borderRadius:16,padding:24,textAlign:'center'}}>
-          <div style={{fontSize:48,marginBottom:8}}>✅</div>
-          <div style={{fontSize:22,fontWeight:800,color:'var(--ok)',marginBottom:4}}>Livré !</div>
-          <div style={{fontSize:13,color:'var(--muted)'}}>Votre commande a été livrée. Merci !</div>
+          <div style={{fontSize:48,marginBottom:8}}>[OK]</div>
+          <div style={{fontSize:22,fontWeight:800,color:'var(--ok)',marginBottom:4}}>Livre !</div>
+          <div style={{fontSize:13,color:'var(--muted)'}}>Votre commande a ete livree. Merci !</div>
         </div>
       ) : pos < 0 ? (
         <div style={{background:'var(--s1)',border:'1px solid var(--border)',borderRadius:16,padding:24,textAlign:'center'}}>
-          <div style={{fontSize:40,marginBottom:8}}>⏳</div>
-          <div style={{fontSize:18,fontWeight:800,marginBottom:4}}>En préparation</div>
-          <div style={{fontSize:13,color:'var(--muted)'}}>Votre commande est en cours de traitement, elle sera assignée à un livreur très bientôt.</div>
+          <div style={{fontSize:40,marginBottom:8}}>[ATTENTE]</div>
+          <div style={{fontSize:18,fontWeight:800,marginBottom:4}}>En preparation</div>
+          <div style={{fontSize:13,color:'var(--muted)'}}>Votre commande est en cours de traitement, elle sera assignee a un livreur tres bientot.</div>
         </div>
       ) : (
         <div style={{background:'var(--s1)',border:'2px solid var(--accent)',borderRadius:16,padding:24,textAlign:'center'}}>
-          <div style={{fontSize:40,marginBottom:8}}>🛵</div>
+          <div style={{fontSize:40,marginBottom:8}}>[LIV]</div>
           <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>En route !</div>
-          {posLabel && <div style={{display:'inline-block',background:'#2a1400',color:'var(--accent)',borderRadius:20,padding:'4px 14px',fontSize:13,fontWeight:700,marginBottom:12}}>{posLabel}</div>}
+
+          {posLabel && (
+            <div style={{display:'inline-block',background:'#2a1400',color:'var(--accent)',borderRadius:20,padding:'4px 14px',fontSize:13,fontWeight:700,marginBottom:12}}>
+              {posLabel}
+            </div>
+          )}
+
           {eta ? (
-            <div style={{background:'#001830',border:`1px solid ${etaIsConfirmed?'#4FC3F7':'#003a5a'}`,borderRadius:12,padding:16,marginTop:8}}>
+            <div style={{background:'#001830',border:`1px solid ${etaIsConfirmed ? 'var(--blue)' : '#003a5a'}`,borderRadius:12,padding:16,marginTop:8}}>
               <div style={{fontSize:11,color:'var(--muted)',fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:4}}>
-                {etaIsConfirmed ? '⏱ Arrivée confirmée par votre livreur' : 'Heure d\'arrivée estimée'}
+                {etaIsConfirmed ? '[ETA] Arrivee confirmee par votre livreur' : "Heure d'arrivee estimee"}
               </div>
-              <div style={{fontSize:36,fontWeight:800,color:'#4FC3F7',fontFamily:'Space Mono,monospace'}}>{fmtTime(eta)}</div>
-              {etaWaitTxt && <div style={{fontSize:13,color:'var(--muted)',marginTop:4}}>dans environ <strong style={{color:'#4FC3F7'}}>{etaWaitTxt}</strong></div>}
+              <div style={{fontSize:36,fontWeight:800,color:'var(--blue)',fontFamily:'Space Mono,monospace'}}>{fmtTime(eta)}</div>
+              {etaWaitTxt && <div style={{fontSize:13,color:'var(--muted)',marginTop:4}}>dans environ <strong style={{color:'var(--blue)'}}>{etaWaitTxt}</strong></div>}
             </div>
           ) : (
             <div style={{color:'var(--muted)',fontSize:13,marginTop:8}}>
-              <span className="spin" style={{marginRight:6}}/> Calcul en cours…
+              <span className="spin" style={{marginRight:6}}/> Calcul en cours...
             </div>
           )}
         </div>
@@ -1618,12 +1903,12 @@ function CustomerView({ order, pendingForDriver, depot }) {
         <div style={{fontWeight:700,fontSize:16,marginBottom:4}}>{order.client}</div>
         <div style={{fontFamily:'Space Mono,monospace',fontSize:11,color:'var(--muted)',marginBottom:8}}>{order.address}</div>
         {order.note && (
-          <div style={{background:'#1a1400',border:'1px solid #3a2e00',borderRadius:8,padding:'8px 10px',fontSize:13,color:'#FFD60A',lineHeight:'1.6'}}>
-            📋 {order.note}
+          <div style={{background:'#1a1400',border:'1px solid #3a2e00',borderRadius:8,padding:'8px 10px',fontSize:13,color:'var(--warn)',lineHeight:'1.6'}}>
+            [NOTE] {order.note}
           </div>
         )}
         <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid var(--border)',fontSize:11,color:'var(--muted)'}}>
-          <span>Commande reçue à {fmtTime(order.addedAt)}</span>
+          <span>Commande recue a {fmtTime(order.addedAt)}</span>
         </div>
       </div>
 
@@ -1631,18 +1916,18 @@ function CustomerView({ order, pendingForDriver, depot }) {
         <div style={{background:'var(--s1)',border:'1px solid var(--border)',borderRadius:14,padding:16}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:10}}>Progression</div>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
-            {[...Array(Math.min(route.length,5))].map((_,i) => (
+            {[...Array(Math.min(route.length, 5))].map((_, i) => (
               <div key={i} style={{
-                flex:1, height:6, borderRadius:3,
-                background: i < pos ? 'var(--ok)' : i === pos ? 'var(--accent)' : 'var(--border)',
+                flex:1,height:6,borderRadius:3,
+                background:i < pos ? 'var(--ok)' : i === pos ? 'var(--accent)' : 'var(--border)',
                 transition:'background .3s'
               }}/>
             ))}
-            {route.length > 5 && <span style={{fontSize:10,color:'var(--muted)'}}>+{route.length-5}</span>}
+            {route.length > 5 && <span style={{fontSize:10,color:'var(--muted)'}}>+{route.length - 5}</span>}
           </div>
           <div style={{display:'flex',justifyContent:'space-between',marginTop:6,fontSize:11,color:'var(--muted)'}}>
-            <span>{pos} livraison{pos!==1?'s':''} avant vous</span>
-            <span>{route.length - pos - 1} après</span>
+            <span>{pos} livraison{pos !== 1 ? 's' : ''} avant vous</span>
+            <span>{route.length - pos - 1} apres</span>
           </div>
         </div>
       )}
@@ -1650,82 +1935,99 @@ function CustomerView({ order, pendingForDriver, depot }) {
   );
 }
 
-// ── Meetup Stock Row ─────────────────────────────────────────
+// ============================================================
+// MEETUP
+// ============================================================
 function MeetupStockRow({ meetup, onUpdate }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState('');
+
   async function save() {
-    const v = parseFloat(val.replace(',','.'));
-    await onUpdate(meetup.id, {stock: isNaN(v)?null:v});
+    const v = parseFloat(val.replace(',', '.'));
+    await onUpdate(meetup.id, {stock:isNaN(v) ? null : v});
     setEditing(false);
   }
+
   return (
     <div style={{padding:'0 14px 8px',borderBottom:'1px solid var(--border)'}}>
       {!editing ? (
         <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <span style={{fontSize:11,color:meetup.stock>0?'#FFD60A':'var(--muted)'}}>
-            {meetup.stock>0?`💼 Stock : ${fmtEuro(meetup.stock)}`:'💼 Aucun stock défini'}
+          <span style={{fontSize:11,color:meetup.stock > 0 ? 'var(--warn)' : 'var(--muted)'}}>
+            {meetup.stock > 0 ? `[STOCK] Stock : ${fmtEuro(meetup.stock)}` : '[STOCK] Aucun stock defini'}
           </span>
-          <button className="btn-sm" onClick={()=>{setVal(meetup.stock>0?String(meetup.stock):'');setEditing(true);}}>
-            {meetup.stock>0?'Modifier':'+ Définir'}
+          <button className="btn-sm" onClick={() => {
+            setVal(meetup.stock > 0 ? String(meetup.stock) : '');
+            setEditing(true);
+          }}>
+            {meetup.stock > 0 ? 'Modifier' : '+ Definir'}
           </button>
         </div>
       ) : (
         <div style={{display:'flex',gap:6,alignItems:'center'}}>
           <input className="add-inp" style={{fontSize:13,width:120}} autoFocus type="number" inputMode="decimal"
             placeholder="Ex: 5000" value={val}
-            onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&save()}/>
-          <span style={{color:'#FFD60A',fontWeight:700}}>€</span>
-          <button className="btn-add" onClick={save} disabled={!val.trim()}>✓</button>
-          <button className="btn-sm" onClick={()=>setEditing(false)}>✕</button>
+            onChange={e => setVal(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && save()}/>
+          <span style={{color:'var(--warn)',fontWeight:700}}>EUR</span>
+          <button className="btn-add" onClick={save} disabled={!val.trim()}>OK</button>
+          <button className="btn-sm" onClick={() => setEditing(false)}>X</button>
         </div>
       )}
     </div>
   );
 }
 
-// ══════════════════════════════════════════════════════════
-// MEETUP VIEW
-// ══════════════════════════════════════════════════════════
 function MeetupView({ meetup, pending, done, onDone, onBack }) {
   const [time, setTime] = useState(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
   const [pendingId, setPending] = useState(null);
   const [amtVal, setAmtVal] = useState('');
-  const prevArrivedCount = useRef(pending.filter(o=>o.status==='arrived').length);
+  const prevArrivedCount = useRef(pending.filter(o => o.status === 'arrived').length);
 
-  useEffect(()=>{
-    const t = setInterval(()=>setTime(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})),30000);
-    return ()=>clearInterval(t);
-  },[]);
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})), 30000);
+    return () => clearInterval(t);
+  }, []);
 
-  useEffect(()=>{
-    if('Notification' in window && Notification.permission==='default') Notification.requestPermission();
-  },[]);
-  useEffect(()=>{
-    const arrivedNow = pending.filter(o=>o.status==='arrived').length;
-    if(arrivedNow > prevArrivedCount.current) {
-      const newest = pending.filter(o=>o.status==='arrived').pop();
-      if(newest && Notification.permission==='granted') {
-        new Notification('📍 Client sur place !', {body:`${newest.client} est arrivé`});
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+  }, []);
+
+  useEffect(() => {
+    const arrivedNow = pending.filter(o => o.status === 'arrived').length;
+    if (arrivedNow > prevArrivedCount.current) {
+      const newest = pending.filter(o => o.status === 'arrived').pop();
+      if (newest && Notification.permission === 'granted') {
+        new Notification('[GPS] Client sur place !', {body:`${newest.client} est arrive`});
       }
     }
     prevArrivedCount.current = arrivedNow;
-  },[pending]);
+  }, [pending]);
 
-  function handleDone(id) { setPending(id); setAmtVal(''); }
-  function confirm() { onDone(pendingId, amtVal!==''?parseFloat(amtVal.replace(',','.')):null); setPending(null); }
-  function skip() { onDone(pendingId, null); setPending(null); }
+  function handleDone(id) {
+    setPending(id);
+    setAmtVal('');
+  }
 
-  const totalDone = done.reduce((s,o)=>s+(parseFloat(o.amount)||0),0);
-  const waiting   = pending.filter(o=>o.status!=='arrived');
-  const arrived   = pending.filter(o=>o.status==='arrived');
+  function confirm() {
+    onDone(pendingId, amtVal !== '' ? parseFloat(amtVal.replace(',', '.')) : null);
+    setPending(null);
+  }
+
+  function skip() {
+    onDone(pendingId, null);
+    setPending(null);
+  }
+
+  const totalDone = done.reduce((s, o) => s + (parseFloat(o.amount) || 0), 0);
+  const waiting = pending.filter(o => o.status !== 'arrived');
+  const arrived = pending.filter(o => o.status === 'arrived');
 
   return (
     <div className="dv-wrap">
       <div className="dv-hdr">
         <div className="dot" style={{background:meetup.color,width:12,height:12}}/>
-        <span className="dv-hdr-name">📍 {meetup.name}</span>
-        {onBack && <button className="dv-back" onClick={onBack}>← Retour</button>}
+        <span className="dv-hdr-name">[GPS] {meetup.name}</span>
+        {onBack && <button className="dv-back" onClick={onBack}>Retour</button>}
       </div>
 
       <div className="dv-clock">
@@ -1733,55 +2035,63 @@ function MeetupView({ meetup, pending, done, onDone, onBack }) {
         <div style={{textAlign:'right'}}><div className="dv-clock-lbl">En attente</div><div>{waiting.length}</div></div>
       </div>
 
-      {(meetup.stock>0||totalDone>0) && (
+      {(meetup.stock > 0 || totalDone > 0) && (
         <div style={{background:'#0a1a0e',border:'1px solid #0f3d25',borderRadius:12,padding:14,marginBottom:14}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:10}}>Bilan journée</div>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:10}}>Bilan journee</div>
           <div style={{display:'flex',gap:8}}>
-            {meetup.stock>0 && (
+            {meetup.stock > 0 && (
               <div style={{flex:1,background:'#061a0e',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
-                <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Stock départ</div>
+                <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Stock depart</div>
                 <div style={{fontFamily:'Space Mono,monospace',fontSize:13,fontWeight:700,color:'var(--muted)'}}>{fmtEuro(meetup.stock)}</div>
               </div>
             )}
             <div style={{flex:1,background:'#061a0e',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
-              <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Encaissé</div>
+              <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Encaisse</div>
               <div style={{fontFamily:'Space Mono,monospace',fontSize:13,fontWeight:700,color:'var(--ok)'}}>{fmtEuro(totalDone)}</div>
             </div>
-            {meetup.stock>0 && (
+            {meetup.stock > 0 && (
               <div style={{flex:1,background:'#061a0e',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
                 <div style={{fontSize:9,color:'var(--muted)',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',marginBottom:3}}>Restant</div>
-                <div style={{fontFamily:'Space Mono,monospace',fontSize:13,fontWeight:700,color:'#4FC3F7'}}>{fmtEuro(Math.max(0,meetup.stock-totalDone))}</div>
+                <div style={{fontFamily:'Space Mono,monospace',fontSize:13,fontWeight:700,color:'var(--blue)'}}>{fmtEuro(Math.max(0, meetup.stock - totalDone))}</div>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {pending.length===0&&done.length===0 && <div className="empty-txt">Aucun client pour le moment 👍</div>}
-      {pending.length===0&&done.length>0 && <div className="empty-txt" style={{color:'var(--ok)'}}>🎉 Tous les clients ont été servis !</div>}
+      {pending.length === 0 && done.length === 0 && <div className="empty-txt">Aucun client pour le moment [OK]</div>}
+      {pending.length === 0 && done.length > 0 && <div className="empty-txt" style={{color:'var(--ok)'}}>[TERMINE] Tous les clients ont ete servis !</div>}
 
-      {arrived.map(o=>{
-        const isPending = pendingId===o.id;
+      {arrived.map(o => {
+        const isPending = pendingId === o.id;
+
         return (
-          <div className="dv-order" key={o.id} style={{border:'2px solid #4FC3F7'}}>
-            <div style={{background:'#001830',padding:'5px 13px',fontSize:11,color:'#4FC3F7',fontWeight:700}}>
-              📍 CLIENT SUR PLACE
+          <div className="dv-order" key={o.id} style={{border:'2px solid var(--blue)'}}>
+            <div style={{background:'#001830',padding:'5px 13px',fontSize:11,color:'var(--blue)',fontWeight:700}}>
+              [GPS] CLIENT SUR PLACE
             </div>
             <div className="dv-order-top">
-              <div className="dv-n" style={{color:'#4FC3F7'}}>!</div>
+              <div className="dv-n" style={{color:'var(--blue)'}}>!</div>
               <div className="dv-body">
                 <div className="dv-client">{o.client}</div>
-                {o.note && <div style={{background:'#1a1400',border:'1px solid #3a2e00',borderRadius:8,padding:'8px 10px',marginBottom:8,fontSize:13,color:'#FFD60A',lineHeight:'1.6',whiteSpace:'pre-wrap'}}>📋 {o.note}</div>}
+                {o.note && (
+                  <div style={{background:'#1a1400',border:'1px solid #3a2e00',borderRadius:8,padding:'8px 10px',marginBottom:8,fontSize:13,color:'var(--warn)',lineHeight:'1.6',whiteSpace:'pre-wrap'}}>
+                    [NOTE] {o.note}
+                  </div>
+                )}
+
                 {!isPending ? (
-                  <button className="dv-done" style={{width:'100%'}} onClick={()=>handleDone(o.id)}>✓ Client servi</button>
+                  <button className="dv-done" style={{width:'100%'}} onClick={() => handleDone(o.id)}>OK Client servi</button>
                 ) : (
                   <div className="amount-box">
-                    <div className="amount-box-lbl">💰 Montant encaissé ?</div>
+                    <div className="amount-box-lbl">[EUR] Montant encaisse ?</div>
                     <div className="amount-row">
                       <input className="amount-inp" type="number" inputMode="decimal" placeholder="0.00" value={amtVal}
-                        onChange={e=>setAmtVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&confirm()} autoFocus/>
-                      <span style={{color:'var(--ok)',fontWeight:700,fontSize:16}}>€</span>
-                      <button className="amount-confirm" onClick={confirm}>✓ OK</button>
+                        onChange={e => setAmtVal(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && confirm()}
+                        autoFocus/>
+                      <span style={{color:'var(--ok)',fontWeight:700,fontSize:16}}>EUR</span>
+                      <button className="amount-confirm" onClick={confirm}>OK OK</button>
                       <button className="amount-skip" onClick={skip}>Passer</button>
                     </div>
                   </div>
@@ -1789,27 +2099,36 @@ function MeetupView({ meetup, pending, done, onDone, onBack }) {
               </div>
             </div>
             <div className="dv-order-footer">
-              <span className="dv-added">Reçu {fmtTime(o.addedAt)}</span>
+              <span className="dv-added">Recu {fmtTime(o.addedAt)}</span>
               <span className={`badge b-${urgency(o.deadline)}`}>{fmtCountdown(o.deadline)}</span>
             </div>
           </div>
         );
       })}
 
-      {waiting.length>0 && (
+      {waiting.length > 0 && (
         <>
-          {arrived.length>0 && <div style={{margin:'12px 0 6px',fontSize:10,color:'var(--muted)',letterSpacing:'2px',textTransform:'uppercase',fontWeight:700,textAlign:'center'}}>En attente</div>}
-          {waiting.map((o,i)=>(
+          {arrived.length > 0 && (
+            <div style={{margin:'12px 0 6px',fontSize:10,color:'var(--muted)',letterSpacing:'2px',textTransform:'uppercase',fontWeight:700,textAlign:'center'}}>
+              En attente
+            </div>
+          )}
+
+          {waiting.map((o, i) => (
             <div className="dv-order" key={o.id}>
               <div className="dv-order-top">
-                <div className="dv-n">{i+1}</div>
+                <div className="dv-n">{i + 1}</div>
                 <div className="dv-body">
                   <div className="dv-client">{o.client}</div>
-                  {o.note && <div style={{background:'#1a1400',border:'1px solid #3a2e00',borderRadius:8,padding:'8px 10px',fontSize:13,color:'#FFD60A',lineHeight:'1.6',whiteSpace:'pre-wrap'}}>📋 {o.note}</div>}
+                  {o.note && (
+                    <div style={{background:'#1a1400',border:'1px solid #3a2e00',borderRadius:8,padding:'8px 10px',fontSize:13,color:'var(--warn)',lineHeight:'1.6',whiteSpace:'pre-wrap'}}>
+                      [NOTE] {o.note}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="dv-order-footer">
-                <span className="dv-added">Reçu {fmtTime(o.addedAt)}</span>
+                <span className="dv-added">Recu {fmtTime(o.addedAt)}</span>
                 <span className={`badge b-${urgency(o.deadline)}`}>{fmtCountdown(o.deadline)}</span>
               </div>
             </div>
@@ -1817,68 +2136,83 @@ function MeetupView({ meetup, pending, done, onDone, onBack }) {
         </>
       )}
 
-      {done.length>0 && <>
-        <div style={{margin:'16px 0 8px',fontSize:10,color:'var(--muted)',letterSpacing:'2px',textTransform:'uppercase',fontWeight:700,textAlign:'center'}}>✓ Déjà servis</div>
-        {done.map(o=>(
-          <div className="dv-order done" key={o.id}>
-            <div className="dv-order-top">
-              <div className="dv-n" style={{color:'var(--ok)'}}>✓</div>
-              <div className="dv-body">
-                <div className="dv-client">{o.client}</div>
-                {o.note && <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>📋 {o.note}</div>}
+      {done.length > 0 && (
+        <>
+          <div style={{margin:'16px 0 8px',fontSize:10,color:'var(--muted)',letterSpacing:'2px',textTransform:'uppercase',fontWeight:700,textAlign:'center'}}>
+            OK Deja servis
+          </div>
+
+          {done.map(o => (
+            <div className="dv-order done" key={o.id}>
+              <div className="dv-order-top">
+                <div className="dv-n" style={{color:'var(--ok)'}}>OK</div>
+                <div className="dv-body">
+                  <div className="dv-client">{o.client}</div>
+                  {o.note && <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>[NOTE] {o.note}</div>}
+                </div>
+              </div>
+              <div className="dv-order-footer">
+                <span className="dv-added">Servi - {fmtTime(o.addedAt)}</span>
+                {o.amount != null && <span style={{fontFamily:'Space Mono,monospace',fontSize:12,color:'var(--ok)',fontWeight:700}}>{fmtEuro(o.amount)}</span>}
               </div>
             </div>
-            <div className="dv-order-footer">
-              <span className="dv-added">Servi — {fmtTime(o.addedAt)}</span>
-              {o.amount!=null && <span style={{fontFamily:'Space Mono,monospace',fontSize:12,color:'var(--ok)',fontWeight:700}}>{fmtEuro(o.amount)}</span>}
-            </div>
-          </div>
-        ))}
-      </>}
+          ))}
+        </>
+      )}
+
       <div style={{height:20}}/>
     </div>
   );
 }
 
-// ══════════════════════════════════════════════════════════
-// HISTORY VIEW
-// ══════════════════════════════════════════════════════════
+// ============================================================
+// HISTORY
+// ============================================================
 function HistoryView() {
   const [history, setHistory] = useState({});
-  useEffect(() => { dbOn('history', v => setHistory(v || {})); }, []);
 
-  const entries = Object.entries(history).sort((a,b) => (b[1].savedAt||0) - (a[1].savedAt||0));
+  useEffect(() => {
+    dbOn('history', v => setHistory(v || {}));
+  }, []);
+
+  const entries = Object.entries(history).sort((a, b) => (b[1].savedAt || 0) - (a[1].savedAt || 0));
 
   return (
     <div className="content">
       <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--muted)',padding:'4px 0 8px'}}>
-        Historique des journées
+        Historique des journees
       </div>
-      {entries.length === 0 && <div className="empty-txt">Aucun historique — il apparaîtra après le premier reset journée</div>}
+
+      {entries.length === 0 && <div className="empty-txt">Aucun historique - il apparaitra apres le premier reset journee</div>}
+
       {entries.map(([id, snap]) => {
         const orders = snap.orders || [];
-        const done   = orders.filter(o => o.status === 'done');
-        const total  = done.reduce((s,o) => s + (parseFloat(o.amount)||0), 0);
+        const done = orders.filter(o => o.status === 'done');
+        const total = done.reduce((s, o) => s + (parseFloat(o.amount) || 0), 0);
+
         return (
           <div className="card" key={id}>
             <div className="route-hdr">
-              <span className="route-hdr-name">📅 {snap.date}</span>
-              <span className="route-hdr-n">{done.length}/{orders.length} livrées</span>
+              <span className="route-hdr-name">[DATE] {snap.date}</span>
+              <span className="route-hdr-n">{done.length}/{orders.length} livrees</span>
             </div>
-            {total > 0 && <div className="route-total">💰 Total encaissé : {fmtEuro(total)}</div>}
-            {done.map((o,i) => (
+
+            {total > 0 && <div className="route-total">[EUR] Total encaisse : {fmtEuro(total)}</div>}
+
+            {done.map((o, i) => (
               <div className="order-row" key={i} style={{opacity:.7}}>
-                <div className="o-num" style={{color:'var(--ok)'}}>✓</div>
+                <div className="o-num" style={{color:'var(--ok)'}}>OK</div>
                 <div className="o-body">
                   <div className="o-client">{o.client}</div>
                   <div className="o-addr">{o.address}</div>
-                  {o.amount!=null && <div style={{fontSize:10,color:'var(--ok)',marginTop:2}}>💰 {fmtEuro(o.amount)}</div>}
+                  {o.amount != null && <div style={{fontSize:10,color:'var(--ok)',marginTop:2}}>[EUR] {fmtEuro(o.amount)}</div>}
                 </div>
               </div>
             ))}
           </div>
         );
       })}
+
       <div style={{height:20}}/>
     </div>
   );
@@ -1886,6 +2220,5 @@ function HistoryView() {
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
-
 </body>
 </html>
